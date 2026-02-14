@@ -14,6 +14,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
   const [hours, setHours] = useState(4);
   const [difficulties, setDifficulties] = useState<string[]>([]);
 
+  const [learningStyle, setLearningStyle] = useState<'visual' | 'auditory' | 'kinesthetic' | 'reading'>('visual');
+
   const subjects = ['Biologia', 'Química', 'Física', 'Matemática', 'História', 'Geografia', 'Português', 'Redação'];
 
   const toggleDifficulty = (subject: string) => {
@@ -31,7 +33,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
         name,
         dailyHours: hours,
         difficulties,
-        learningStyle: 'visual',
+        learningStyle,
         academicHistory: '',
         hasOnboarded: true,
         streak: 0
@@ -62,7 +64,7 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             <span className="font-bold text-xl tracking-tight">MedTutor</span>
           </div>
           <div className="flex gap-2">
-            {[1, 2, 3].map(i => (
+            {[1, 2, 3, 4].map(i => (
               <div key={i} className={`h-2 rounded-full transition-all duration-300 ${step >= i ? 'w-8 bg-brand-500' : 'w-2 bg-surface-200'}`} />
             ))}
           </div>
@@ -155,6 +157,45 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
             {step === 3 && (
               <div className="space-y-6 animate-slide-up">
                 <div className="text-center space-y-2">
+                  <h2 className="text-2xl font-bold text-surface-900">Como você aprende melhor?</h2>
+                  <p className="text-surface-600">Selecione o estilo que mais combina com você.</p>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  {[
+                    { id: 'visual', label: 'Visual', icon: <Book size={20} /> },
+                    { id: 'auditory', label: 'Auditivo', icon: <Clock size={20} /> }, // Using Clock as placeholder, could be improved
+                    { id: 'reading', label: 'Leitura/Escrita', icon: <Book size={20} /> },
+                    { id: 'kinesthetic', label: 'Prático', icon: <CheckCircle size={20} /> }
+                  ].map((style) => (
+                    <button
+                      key={style.id}
+                      onClick={() => setLearningStyle(style.id as any)}
+                      className={`p-4 rounded-xl border-2 transition-all flex flex-col items-center gap-2 ${learningStyle === style.id
+                        ? 'bg-brand-50 border-brand-500 text-brand-700'
+                        : 'bg-white border-surface-100 hover:border-brand-200 text-surface-600'
+                        }`}
+                    >
+                      {style.icon}
+                      <span className="font-semibold">{style.label}</span>
+                    </button>
+                  ))}
+                </div>
+
+                <div className="flex gap-3 mt-4">
+                  <button
+                    onClick={() => setStep(4)}
+                    className="w-full group bg-brand-600 hover:bg-brand-700 text-white font-bold py-3 rounded-xl shadow-lg transition-all flex items-center justify-center gap-2"
+                  >
+                    Confirmar Estilo <ArrowRight size={20} />
+                  </button>
+                </div>
+              </div>
+            )}
+
+            {step === 4 && (
+              <div className="space-y-6 animate-slide-up">
+                <div className="text-center space-y-2">
                   <h2 className="text-2xl font-bold text-surface-900">Seus Desafios</h2>
                   <p className="text-surface-600">Selecione as matérias que você considera mais difíceis.</p>
                 </div>
@@ -165,8 +206,8 @@ const Onboarding: React.FC<OnboardingProps> = ({ onComplete }) => {
                       key={sub}
                       onClick={() => toggleDifficulty(sub)}
                       className={`px-4 py-3 rounded-xl text-sm font-semibold border-2 transition-all duration-200 flex items-center justify-center gap-2 ${difficulties.includes(sub)
-                          ? 'bg-rose-50 border-rose-500 text-rose-700 shadow-sm'
-                          : 'bg-white border-surface-100 text-surface-500 hover:border-brand-200 hover:text-brand-600 hover:bg-surface-50'
+                        ? 'bg-rose-50 border-rose-500 text-rose-700 shadow-sm'
+                        : 'bg-white border-surface-100 text-surface-500 hover:border-brand-200 hover:text-brand-600 hover:bg-surface-50'
                         }`}
                     >
                       {sub}
