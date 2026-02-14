@@ -49,8 +49,8 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, userNam
                     setIsMobileMenuOpen(false);
                   }}
                   className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg transition-colors duration-200 ${isActive
-                      ? 'bg-brand-50 text-brand-700 font-medium'
-                      : 'text-surface-600 hover:bg-surface-50 hover:text-brand-600'
+                    ? 'bg-brand-50 text-brand-700 font-medium'
+                    : 'text-surface-600 hover:bg-surface-50 hover:text-brand-600'
                     }`}
                 >
                   <Icon size={20} />
@@ -58,6 +58,21 @@ const Layout: React.FC<LayoutProps> = ({ children, currentView, setView, userNam
                 </button>
               );
             })}
+          </div>
+
+          <div className="mt-8 pt-8 border-t border-surface-200">
+            <button
+              onClick={() => {
+                if (confirm("Tem certeza? Isso apagará todo seu progresso e histórico.")) {
+                  localStorage.clear();
+                  window.location.reload();
+                }
+              }}
+              className="w-full flex items-center gap-3 px-4 py-3 rounded-lg text-red-500 hover:bg-red-50 transition-colors duration-200"
+            >
+              <X size={20} />
+              Resetar Progresso
+            </button>
           </div>
         </div>
       </nav>
