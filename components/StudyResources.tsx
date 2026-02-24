@@ -5,9 +5,10 @@ import { Search, BookOpen, ExternalLink, ChevronRight, Loader2, Sparkles } from 
 
 interface StudyResourcesProps {
   profile: UserProfile;
+  setView?: (view: 'dashboard' | 'chat' | 'resources' | 'progress') => void;
 }
 
-const StudyResources: React.FC<StudyResourcesProps> = ({ profile }) => {
+const StudyResources: React.FC<StudyResourcesProps> = ({ profile, setView }) => {
   const [query, setQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [resource, setResource] = useState<ContentResource | null>(null);
@@ -130,6 +131,18 @@ const StudyResources: React.FC<StudyResourcesProps> = ({ profile }) => {
                     </a>
                   ))}
                 </div>
+              </div>
+            )}
+
+            {/* Finish Action */}
+            {setView && (
+              <div className="pt-8 flex justify-center border-t border-surface-100">
+                <button
+                  onClick={() => setView('dashboard')}
+                  className="bg-green-500 hover:bg-green-600 text-white px-8 py-4 rounded-xl font-bold text-lg shadow-md transition-transform hover:scale-105 flex items-center gap-3"
+                >
+                  ✓ Estudo Concluído: Voltar ao Painel
+                </button>
               </div>
             )}
           </div>

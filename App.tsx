@@ -38,11 +38,11 @@ const App: React.FC = () => {
   return (
     <Layout currentView={view} setView={setView} userName={profile.name}>
       {view === 'dashboard' && <Dashboard plan={plan} profile={profile} onUpdatePlan={(p) => {
-          setPlan(p);
-          localStorage.setItem('medtutor_plan', JSON.stringify(p));
+        setPlan(p);
+        localStorage.setItem('medtutor_plan', JSON.stringify(p));
       }} />}
       {view === 'chat' && <TutorChat profile={profile} />}
-      {view === 'resources' && <StudyResources profile={profile} />}
+      {view === 'resources' && <StudyResources profile={profile} setView={setView} />}
       {view === 'progress' && <ProgressTracker profile={profile} />}
     </Layout>
   );

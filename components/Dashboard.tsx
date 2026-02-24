@@ -103,10 +103,10 @@ const Dashboard: React.FC<DashboardProps> = ({ plan, profile, onUpdatePlan }) =>
                   <div
                     key={task.id}
                     className={`group flex items-start gap-4 p-4 rounded-xl border transition-all cursor-pointer hover:shadow-md ${task.completed
-                        ? 'bg-surface-50 border-transparent opacity-75'
-                        : activeTask === task.id
-                          ? 'bg-white border-brand-500 ring-1 ring-brand-500 shadow-sm'
-                          : 'bg-white border-surface-200 hover:border-brand-300'
+                      ? 'bg-surface-50 border-transparent opacity-75'
+                      : activeTask === task.id
+                        ? 'bg-white border-brand-500 ring-1 ring-brand-500 shadow-sm'
+                        : 'bg-white border-surface-200 hover:border-brand-300'
                       }`}
                     onClick={() => !task.completed && setActiveTask(task.id)}
                   >
@@ -123,9 +123,9 @@ const Dashboard: React.FC<DashboardProps> = ({ plan, profile, onUpdatePlan }) =>
                     <div className="flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         <span className={`text-xs font-bold uppercase tracking-wider px-2 py-0.5 rounded ${task.subject.includes('Biologia') ? 'bg-green-100 text-green-700' :
-                            task.subject.includes('Química') ? 'bg-purple-100 text-purple-700' :
-                              task.subject.includes('Física') ? 'bg-blue-100 text-blue-700' :
-                                'bg-surface-100 text-surface-600'
+                          task.subject.includes('Química') ? 'bg-purple-100 text-purple-700' :
+                            task.subject.includes('Física') ? 'bg-blue-100 text-blue-700' :
+                              'bg-surface-100 text-surface-600'
                           }`}>
                           {task.subject}
                         </span>
@@ -186,8 +186,21 @@ const Dashboard: React.FC<DashboardProps> = ({ plan, profile, onUpdatePlan }) =>
             </div>
 
             {activeTask && (
-              <div className="mt-6 p-3 bg-brand-50 rounded-lg text-sm text-brand-800 text-center border border-brand-100">
-                Focando em:<br /><strong>{todayTasks.find(t => t.id === activeTask)?.topic}</strong>
+              <div className="mt-6 p-4 bg-brand-50 rounded-xl text-center border border-brand-200 shadow-sm flex flex-col gap-3">
+                <div className="text-sm text-brand-800">
+                  Focando em:<br /><strong className="text-lg">{todayTasks.find(t => t.id === activeTask)?.topic}</strong>
+                </div>
+                <button
+                  onClick={() => {
+                    toggleTaskCompletion(0, activeTask);
+                    setActiveTask(null);
+                    resetTimer();
+                  }}
+                  className="w-full bg-green-500 hover:bg-green-600 text-white py-3 rounded-lg font-bold shadow-sm transition-colors flex justify-center items-center gap-2"
+                >
+                  <CheckCircle2 size={20} />
+                  Concluir esta Missão
+                </button>
               </div>
             )}
           </div>
