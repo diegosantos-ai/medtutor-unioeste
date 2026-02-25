@@ -1,7 +1,0 @@
-{
-  "name": "MedTutor UNIOESTE",
-  "description": "An intelligent educational tutor system designed for students preparing for the Medicine entrance exam at UNIOESTE Francisco Beltrão.",
-  "requestFramePermissions": [
-    "microphone"
-  ]
-}
