@@ -1,0 +1,122 @@
+import os
+import google.generativeai as genai
+import json
+import random
+from app.video_database import get_recommended_videos
+from app.rag_service import rag_db
+
+genai.configure(api_key=os.environ["GEMINI_API_KEY"])
+
+def _get_model():
+    return genai.GenerativeModel("gemini-2.5-flash")
+
+def generate_study_plan(profile: dict):
+    model = _get_model()
+    days = profile.get("days", 30)
+    difficulties = profile.get("difficulties", [])
+    learning_style = profile.get("learning_style", "visual")
+    name = profile.get("name", "Student")
+    profile_type = profile.get("profile", "Ciclo Básico")
+
+    prompt = f"""
+    Você é um tutor especialista em Medicina.
+    Perfil do estudante: Nome: {name}, Perfil: {profile_type}, Dias: {days}, Dificuldades: {json.dumps(difficulties)}
+
+    Crie um plano de estudo de {days} dias, dividindo os conteúdos das matérias, priorizando as dificuldades informadas pelo aluno.
+    Para cada dia, gere tarefas teóricas, indique o tópico e o subject. Não invente URLs de vídeos. Deixe "video_url" em branco no JSON, pois o backend preencherá.
+    Retorne SOMENTE um JSON válido com esta estrutura:
+    {{
+      "days": {days},
+      "schedule": [
+        {{
+          "day": "Dia 1",
+          "tasks": [
+            {{
+              "id": "task_1",
+              "subject": "Anatomia",
+              "topic": "Sistema Nervoso Central",
+              "duration": "45 min",
+              "objective": "Compreender estruturas medulares e nervos",
+              "type": "teoria|video|quiz|resumo",
+              "video_url": "",
+              "quiz": [{{"question": "...", "options": ["A", "B", "C"], "answer": "A"}}],
+              "completed": false
+            }}
+          ],
+          "summary": "Resumo do dia 1...",
+          "mindmap_url": ""
+        }}
+      ]
+    }}
+    """
+    response = model.generate_content(prompt)
+    try:
+        # Strip markdown json block if present
+        text = response.text.replace("```json", "").replace("```", "").strip()
+        data = json.loads(text)
+        
+        # Inject real videos
+        for day_schedule in data.get("schedule", []):
+            for task in day_schedule.get("tasks", []):
+                if task.get("type", "") == "video" or "video" in json.dumps(task):
+                    recs = get_recommended_videos(task.get("subject", "Anatomia"))
+                    if recs:
+                        chosen = random.choice(recs)
+                        task["video_url"] = chosen["url"]
+                        task["video_title"] = chosen["title"]
+                        task["video_channel"] = chosen["channel"]
+        return data
+    except Exception as e:
+        print("Error parsing Gemini response:", e)
+        return {"weekId": 1, "schedule": []}
+
+def get_tutor_response(query: str, profile: dict, history: list):
+    model = _get_model()
+    # Usando history com "Coordenador de Cursinho Elite" persona e "Chain of Thought"
+    chat = model.start_chat()
+    
+    # Busca contexto no RAG vector DB simulado
+    rag_context = rag_db.query_context(query)
+    
+    context_prompt = f"""
+Você é um Coordenador de Cursinho Elite para Medicina.
+Regras de conduta rigorosas: 
+1. Se o aluno errar, NUNCA dê a resposta direta.
+2. Aponte a lacuna teórica onde ele errou.
+3. Use analogias clínicas ou casos médicos sempre que possível para explicar conceitos básicos.
+4. Priorize temas de alta recorrência.
+5. Use "Chain of Thought" internamente (pense passo a passo antes de responder) para evitar erros de Estequiometria ou Genética, por exemplo.
+
+[CONTEXTO RECUPERADO DE MANUAIS/AULAS VIA RAG]:
+{rag_context}
+
+Perfil do aluno: {json.dumps(profile)}.
+Pergunta atual do estudante: {query}
+"""
+    response = chat.send_message(context_prompt)
+    
+    return {"text": response.text, "sources": [{"title": "Base Curada VectorDB RAG", "url": "#"}]}
+
+def generate_summary(subject: str, topic: str):
+    model = _get_model()
+    prompt = f"""
+    Create a detailed study guide for the UNIOESTE exam about {subject} - {topic}.
+    Return ONLY a valid JSON matching this structure:
+    {{
+      "title": "String",
+      "subject": "{subject}",
+      "content": "Rich string with markdown formatting discussing {topic}",
+      "prerequisites": ["List", "of", "strings"],
+      "examples": ["List", "of", "strings"],
+      "externalLinks": [
+        {{"title": "Link name", "url": "https://..."}}
+      ]
+    }}
+    """
+    response = model.generate_content(prompt)
+    try:
+        text = response.text.replace("```json", "").replace("```", "").strip()
+        return json.loads(text)
+    except Exception as e:
+        print("Error parsing Gemini response:", e)
+        return {"title": topic, "subject": subject, "content": "Failed to generate.", "prerequisites": [], "examples": [], "externalLinks": []}
