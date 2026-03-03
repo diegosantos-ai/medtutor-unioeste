@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import StudyPlanConfig from './components/StudyPlanConfig';
 import ProgressBar from './components/ProgressBar';
 import StudyDay from './components/StudyDay';
@@ -10,6 +10,8 @@ import { Pomodoro } from './components/Pomodoro';
 import { ClinicalCases } from './components/ClinicalCases';
 import { ErrorNotebook } from './components/ErrorNotebook';
 import { TourTip } from './components/TourTip';
+import { LogViewer } from './components/LogViewer/LogViewer';
+import { logger } from './utils/logger';
 import { LayoutDashboard, GraduationCap, MessageSquare, Archive, LogOut, Activity, Clock, Layers, FileQuestion, BookX, Lightbulb } from 'lucide-react';
 
 const App: React.FC = () => {
@@ -23,6 +25,11 @@ const App: React.FC = () => {
   const [showTour, setShowTour] = useState<boolean>(true);
   const [completedDays, setCompletedDays] = useState<Set<number>>(new Set());
   const [dayTasksCompleted, setDayTasksCompleted] = useState<{ [day: number]: Set<string> }>({});
+
+  // LogViewer state
+  const [showLogViewer, setShowLogViewer] = useState(false);
+  const logoClickCount = useRef(0);
+  const lastLogoClickTime = useRef(0);
 
   // Load Session if exists
   React.useEffect(() => {
@@ -53,6 +60,37 @@ const App: React.FC = () => {
       }));
     }
   }, [matricula, days, currentDay, studentInfo, plan, difficulties, showTour]);
+
+  // Log app initialization
+  useEffect(() => {
+    logger.info('App', 'App inicializado', {
+      currentDay,
+      activeTab,
+      hasSession: !!matricula,
+    });
+  }, []);
+
+  // Log navigation changes
+  useEffect(() => {
+    logger.info('Navigation', `Navegação para: ${activeTab}`);
+  }, [activeTab]);
+
+  // Secret button handler (5 clicks on logo)
+  const handleLogoClick = () => {
+    const now = Date.now();
+    if (now - lastLogoClickTime.current < 1000) {
+      logoClickCount.current += 1;
+    } else {
+      logoClickCount.current = 1;
+    }
+    lastLogoClickTime.current = now;
+
+    if (logoClickCount.current === 5) {
+      logger.info('App', 'Botão secreto acionado - Abrindo LogViewer');
+      setShowLogViewer(true);
+      logoClickCount.current = 0;
+    }
+  };
 
   const handleSaveConfig = async (daysConfig: number, diffConfig: any, name: string, profile: string) => {
     const newMatricula = `MT-${Math.floor(1000 + Math.random() * 9000)}`;
@@ -184,7 +222,11 @@ const App: React.FC = () => {
       {/* Sidebar */}
       <aside className="w-64 bg-zinc-950 flex flex-col text-zinc-100">
         <div className="p-6 border-b border-zinc-800">
-          <h1 className="text-xl font-bold tracking-tight text-white flex items-center gap-2">
+          <h1 
+            className="text-xl font-bold tracking-tight text-white flex items-center gap-2 cursor-pointer select-none"
+            onClick={handleLogoClick}
+            title="Clique 5x para abrir logs"
+          >
             <GraduationCap className="w-6 h-6 text-emerald-400" />
             MedTutor
           </h1>
@@ -481,10 +523,13 @@ const App: React.FC = () => {
              </div>
           </div>
 
-        </div>
-      </main>
-    </div>
-  );
-};
+         </div>
+       </main>
+
+       {/* Log Viewer Modal */}
+       <LogViewer isOpen={showLogViewer} onClose={() => setShowLogViewer(false)} />
+     </div>
+   );
+ };
 
 export default App;

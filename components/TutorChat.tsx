@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Message, UserProfile, QuizItem } from '../types';
 import { getTutorResponse, generateLargeQuizFromContext } from '../geminiService';
+import { useLogger } from '../utils/logger';
 import { Send, Bot, User, Loader2, BrainCircuit, X, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface TutorChatProps {
@@ -8,6 +9,7 @@ interface TutorChatProps {
 }
 
 const TutorChat: React.FC<TutorChatProps> = ({ profile }) => {
+  const logger = useLogger('TutorChat');
   const [messages, setMessages] = useState<Message[]>([
     { role: 'bot', text: `Ola, ${profile.name}! Sou seu Tutor IA para o vestibular de Medicina da UNIOESTE. Posso ajudar com Biologia, Quimica, Fisica, Matematica, Portugues, Historia, Geografia e Redacao. Sobre o que quer estudar?`, timestamp: Date.now() }
   ]);
@@ -44,13 +46,19 @@ const TutorChat: React.FC<TutorChatProps> = ({ profile }) => {
   const handleSend = async () => {
     if (!input.trim()) return;
 
+    logger.logUserAction('Enviar mensagem', { messageLength: input.length });
     const userMsg: Message = { role: 'user', text: input, timestamp: Date.now() };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setLoading(true);
 
+    const startTime = performance.now();
     try {
       const response = await getTutorResponse(input, profile, messages);
+      const duration = Math.round(performance.now() - startTime);
+      
+      logger.logPerformance('getTutorResponse', duration, { success: true });
+      
       const botMsg: Message = {
         role: 'bot',
         text: response.text,
@@ -59,7 +67,12 @@ const TutorChat: React.FC<TutorChatProps> = ({ profile }) => {
       };
       setMessages(prev => [...prev, botMsg]);
     } catch (error) {
-      console.error(error);
+      const duration = Math.round(performance.now() - startTime);
+      logger.error('Falha no getTutorResponse', error instanceof Error ? error : undefined, { 
+        duration,
+        messageInput: input.substring(0, 50)
+      });
+      
       setMessages(prev => [...prev, { role: 'bot', text: "Desculpe, tive um erro ao processar. Tente novamente.", timestamp: Date.now() }]);
     } finally {
       setLoading(false);
