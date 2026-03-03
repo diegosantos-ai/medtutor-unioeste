@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from 'react';
-import { flashcardsApi, Flashcard, FlashcardReviewData } from '../api/flashcardsApi';
+import { MOCK_FLASHCARDS, MockFlashcard } from '../api/mockData';
 
 interface UseFlashcardsReturn {
-  flashcards: Flashcard[];
+  flashcards: MockFlashcard[];
   isLoading: boolean;
   error: string | null;
   refetch: () => Promise<void>;
@@ -11,7 +11,7 @@ interface UseFlashcardsReturn {
 }
 
 export function useFlashcards(dueOnly: boolean = true): UseFlashcardsReturn {
-  const [flashcards, setFlashcards] = useState<Flashcard[]>([]);
+  const [flashcards, setFlashcards] = useState<MockFlashcard[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -19,11 +19,15 @@ export function useFlashcards(dueOnly: boolean = true): UseFlashcardsReturn {
     setIsLoading(true);
     setError(null);
     
+    // Simula delay de API
+    await new Promise(resolve => setTimeout(resolve, 500));
+    
     try {
-      const data = await flashcardsApi.getFlashcards(dueOnly);
+      // Usa dados mockados
+      const data = MOCK_FLASHCARDS;
       setFlashcards(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar flashcards');
+      setError('Erro ao carregar flashcards');
     } finally {
       setIsLoading(false);
     }
@@ -34,13 +38,11 @@ export function useFlashcards(dueOnly: boolean = true): UseFlashcardsReturn {
   }, [fetchFlashcards]);
 
   const reviewCard = async (cardId: number, quality: number) => {
-    try {
-      await flashcardsApi.reviewFlashcard(cardId, { quality });
-      // Atualizar lista após revisão
-      await fetchFlashcards();
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao revisar flashcard');
-    }
+    // Simula atualização local
+    await new Promise(resolve => setTimeout(resolve, 200));
+    
+    // Remove o card revisado da lista (simula sistema SRS)
+    setFlashcards(prev => prev.filter(card => card.id !== cardId));
   };
 
   return {

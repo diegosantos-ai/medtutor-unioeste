@@ -1,39 +1,21 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { BookX, CheckCircle, ChevronRight, XCircle, BrainCircuit, Loader2, AlertCircle } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TourTip } from './TourTip';
-import { errorsApi, ErrorNotebookItem } from './api/errorsApi';
+import { useErrors } from './hooks/useErrors';
+import { MockQuestion } from './api/mockData';
 
 interface ErrorProps {
   showTour?: boolean;
 }
 
 export const ErrorNotebook: React.FC<ErrorProps> = ({ showTour = false }) => {
-  const [errors, setErrors] = useState<ErrorNotebookItem[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const { errors, isLoading, error: errorMsg, refetch } = useErrors();
   
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOpt, setSelectedOpt] = useState<string | null>(null);
   const [answered, setAnswered] = useState(false);
   const [showHistory, setShowHistory] = useState(true);
-
-  const fetchErrors = useCallback(async () => {
-    setIsLoading(true);
-    setErrorMsg(null);
-    try {
-      const data = await errorsApi.getErrors();
-      setErrors(data);
-    } catch (err) {
-      setErrorMsg(err instanceof Error ? err.message : 'Erro ao carregar erros');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchErrors();
-  }, [fetchErrors]);
 
   const currentError = errors[currentIndex];
 
@@ -56,15 +38,8 @@ export const ErrorNotebook: React.FC<ErrorProps> = ({ showTour = false }) => {
     }
   };
 
-  const getAlternativas = (error: ErrorNotebookItem): Record<string, string> => {
-    // Mock de alternativas já que a API retorna apenas o enunciado
-    return {
-      'A': 'Alternativa A',
-      'B': 'Alternativa B',
-      'C': 'Alternativa C',
-      'D': 'Alternativa D',
-      'E': 'Alternativa E'
-    };
+  const getAlternativas = (error: MockQuestion): Record<string, string> => {
+    return error.alternativas;
   };
 
   if (isLoading) {
@@ -83,7 +58,7 @@ export const ErrorNotebook: React.FC<ErrorProps> = ({ showTour = false }) => {
         <p className="text-zinc-700 mb-2">Erro ao carregar caderno</p>
         <p className="text-zinc-500 text-sm mb-4">{errorMsg}</p>
         <button
-          onClick={fetchErrors}
+          onClick={refetch}
           className="px-4 py-2 bg-zinc-900 text-white rounded-lg hover:bg-rose-500 transition-colors"
         >
           Tentar novamente

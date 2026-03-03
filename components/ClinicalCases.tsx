@@ -1,40 +1,22 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
 import { GraduationCap, BookOpen, FileText, CheckCircle2, ChevronRight, AlertCircle, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { TourTip } from './TourTip';
-import { casesApi, ClinicalCase, CaseAnswerResponse } from './api/casesApi';
+import { useCases } from './hooks/useCases';
+import { MockClinicalCase } from './api/mockData';
 
 interface CasesProps {
   showTour?: boolean;
 }
 
 export const ClinicalCases: React.FC<CasesProps> = ({ showTour = false }) => {
-  const [cases, setCases] = useState<ClinicalCase[]>([]);
+  const { cases, isLoading, error, refetch } = useCases();
   const [currentCaseIndex, setCurrentCaseIndex] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
   const [showFeedback, setShowFeedback] = useState(false);
-  const [feedback, setFeedback] = useState<CaseAnswerResponse | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<{ correto: boolean; explicacao: string } | null>(null);
   const [completed, setCompleted] = useState(false);
-
-  const fetchCases = useCallback(async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      const data = await casesApi.getCases();
-      setCases(data);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar casos');
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchCases();
-  }, [fetchCases]);
 
   const currentCase = cases[currentCaseIndex];
   const currentEtapa = currentCase?.etapas?.[currentStep];
@@ -45,15 +27,14 @@ export const ClinicalCases: React.FC<CasesProps> = ({ showTour = false }) => {
     setSelectedOption(optionKey);
     setShowFeedback(true);
 
-    try {
-      const result = await casesApi.submitAnswer(currentCase.id, {
-        etapa_id: currentEtapa.id,
-        resposta: optionKey
-      });
-      setFeedback(result);
-    } catch (err) {
-      console.error('Erro ao submeter resposta:', err);
-    }
+    // Simula resposta da API com dados mockados
+    const isCorrect = optionKey.toUpperCase() === currentEtapa.resposta_correta.toUpperCase();
+    setFeedback({
+      correto: isCorrect,
+      explicacao: isCorrect 
+        ? "Parabéns! Resposta correta."
+        : `A resposta correta é ${currentEtapa.resposta_correta}. Continue estudando!`
+    });
   };
 
   const handleNext = () => {
@@ -80,7 +61,7 @@ export const ClinicalCases: React.FC<CasesProps> = ({ showTour = false }) => {
     setShowFeedback(false);
     setFeedback(null);
     setCompleted(false);
-    fetchCases();
+    refetch();
   };
 
   if (isLoading) {
@@ -99,7 +80,7 @@ export const ClinicalCases: React.FC<CasesProps> = ({ showTour = false }) => {
         <p className="text-zinc-700 mb-2">Erro ao carregar casos</p>
         <p className="text-zinc-500 text-sm mb-4">{error}</p>
         <button
-          onClick={fetchCases}
+          onClick={refetch}
           className="px-4 py-2 bg-zinc-900 text-white rounded-lg hover:bg-emerald-500 transition-colors"
         >
           Tentar novamente
@@ -116,7 +97,7 @@ export const ClinicalCases: React.FC<CasesProps> = ({ showTour = false }) => {
         </div>
         <h2 className="text-xl font-bold text-zinc-900 mb-2">Nenhum caso disponível</h2>
         <p className="text-zinc-500 mb-6">Não há casos clínicos cadastrados no momento.</p>
-        <button onClick={fetchCases} className="px-6 py-3 bg-zinc-900 text-white rounded-xl font-bold">
+        <button onClick={refetch} className="px-6 py-3 bg-zinc-900 text-white rounded-xl font-bold">
           Atualizar
         </button>
       </div>

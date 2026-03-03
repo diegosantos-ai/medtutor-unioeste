@@ -1,5 +1,15 @@
 import { useState, useEffect, useCallback } from 'react';
-import { statsApi, UserStats } from '../api/statsApi';
+import { MOCK_STATS } from '../api/mockData';
+
+interface UserStats {
+  total_questions: number;
+  correct_answers: number;
+  accuracy: number;
+  flashcards_reviewed_today: number;
+  total_flashcards: number;
+  streak: number;
+  study_days: number;
+}
 
 interface UseStatsReturn {
   stats: UserStats | null;
@@ -17,11 +27,14 @@ export function useStats(): UseStatsReturn {
     setIsLoading(true);
     setError(null);
     
+    // Simula delay de API
+    await new Promise(resolve => setTimeout(resolve, 400));
+    
     try {
-      const data = await statsApi.getStats();
-      setStats(data);
+      // Usa dados mockados
+      setStats(MOCK_STATS);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Erro ao carregar estatísticas');
+      setError('Erro ao carregar estatísticas');
     } finally {
       setIsLoading(false);
     }

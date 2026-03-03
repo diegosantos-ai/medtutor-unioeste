@@ -1,0 +1,28 @@
+version: "3.8"
+
+services:
+  medtutor-api:
+    build: 
+      context: ./backend
+      dockerfile: Dockerfile
+    
+    container_name: medtutor-api
+    
+    # Selecting an available port based on PORTS.md
+    # Used 8096 since 8090-8095 are taken by Nexo services
+    ports:
+      - "8096:8000" 
+      
+    environment:
+      # Connecting to the shared PostgreSQL vector database from Nexo infrastructure
+      - DATABASE_URL=postgresql://postgres:postgres123@postgres-vector:5432/medtutor_db
+      - REDIS_URL=redis://redis:6379
+      - CHROMA_URL=http://chromadb:8000
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    networks:
+      - nexo-infra-network
+
+networks:
+  nexo-infra-network:
+    external: true
+    name: infra_nexo-network
