@@ -13,12 +13,14 @@ import { TourTip } from './components/TourTip';
 import { LogViewer } from './components/LogViewer/LogViewer';
 import { logger } from './utils/logger';
 import { LayoutDashboard, GraduationCap, MessageSquare, Archive, LogOut, Activity, Clock, Layers, FileQuestion, BookX, Lightbulb } from 'lucide-react';
+import { authApi } from './components/api/authApi';
+import { apiClient } from './components/api/apiClient';
 
 const App: React.FC = () => {
   const [days, setDays] = useState(30);
   const [currentDay, setCurrentDay] = useState(1);
   const [difficulties, setDifficulties] = useState<any[]>([]);
-  const [studentInfo, setStudentInfo] = useState<{name: string, profile: string} | null>(null);
+  const [studentInfo, setStudentInfo] = useState<{ name: string, profile: string } | null>(null);
   const [plan, setPlan] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'study' | 'materials' | 'chat' | 'dashboard' | 'flashcards' | 'pomodoro' | 'cases' | 'errors' | 'mindmaps'>('study');
   const [matricula, setMatricula] = useState<string | null>(null);
@@ -95,17 +97,38 @@ const App: React.FC = () => {
   const handleSaveConfig = async (daysConfig: number, diffConfig: any, name: string, profile: string) => {
     const newMatricula = `MT-${Math.floor(1000 + Math.random() * 9000)}`;
     setMatricula(newMatricula);
-    
+
     setDays(daysConfig);
     setDifficulties(diffConfig);
     setStudentInfo({ name, profile });
-    
+
     setPlan({ loading: true });
 
     try {
+      // 1. Tentar login ou registro automático para isolar o usuário
+      // Usamos o nome como email simbólico para este MVP de login simples
+      const email = `${name.toLowerCase().replace(/\s+/g, '.')}@medtutor.com`;
+      const password = 'password123'; // Senha padrão para login simplificado
+
+      let authResponse;
+      try {
+        authResponse = await authApi.login({ email, password });
+      } catch (e) {
+        // Se falhar login, tenta registrar
+        authResponse = await authApi.register({ email, password, name });
+      }
+
+      const token = authResponse.access_token;
+      apiClient.setToken(token);
+      localStorage.setItem('medtutor_token', token);
+
+      // 2. Chamar API de plano autenticada
       const res = await fetch('/api/ai', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
         body: JSON.stringify({
           action: 'plan',
           payload: {
@@ -118,7 +141,7 @@ const App: React.FC = () => {
       });
 
       if (!res.ok) throw new Error('Falha ao gerar plano');
-      
+
       const data = await res.json();
       setPlan(data.text ? JSON.parse(data.text) : data);
     } catch (error) {
@@ -198,7 +221,7 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => {
-    localStorage.removeItem('medtutor_session');
+    authApi.logout();
     window.location.reload();
   };
 
@@ -222,7 +245,7 @@ const App: React.FC = () => {
       {/* Sidebar */}
       <aside className="w-64 bg-zinc-950 flex flex-col text-zinc-100">
         <div className="p-6 border-b border-zinc-800">
-          <h1 
+          <h1
             className="text-xl font-bold tracking-tight text-white flex items-center gap-2 cursor-pointer select-none"
             onClick={handleLogoClick}
             title="Clique 5x para abrir logs"
@@ -239,27 +262,27 @@ const App: React.FC = () => {
             </div>
           )}
         </div>
-        
+
         <nav className="flex-1 p-4 space-y-6 overflow-y-auto">
           {/* Grupo: Estudo */}
           <div>
             <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-3 mb-2">Estudo</p>
             <div className="space-y-1">
-              <button 
+              <button
                 onClick={() => setActiveTab('study')}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${activeTab === 'study' ? 'bg-zinc-800 text-emerald-400 font-medium' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}
               >
                 <LayoutDashboard className="w-4 h-4" />
                 Plano do Dia
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab('cases')}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${activeTab === 'cases' ? 'bg-zinc-800 text-emerald-400 font-medium' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}
               >
                 <FileQuestion className="w-4 h-4" />
                 Simulado Questoes
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab('flashcards')}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${activeTab === 'flashcards' ? 'bg-zinc-800 text-emerald-400 font-medium' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}
               >
@@ -273,7 +296,7 @@ const App: React.FC = () => {
           <div>
             <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-3 mb-2">Revisao</p>
             <div className="space-y-1">
-              <button 
+              <button
                 onClick={() => setActiveTab('errors')}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${activeTab === 'errors' ? 'bg-zinc-800 text-emerald-400 font-medium' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}
               >
@@ -294,14 +317,14 @@ const App: React.FC = () => {
           <div>
             <p className="text-[10px] font-bold text-zinc-500 uppercase tracking-widest px-3 mb-2">Acompanhamento</p>
             <div className="space-y-1">
-              <button 
+              <button
                 onClick={() => setActiveTab('dashboard')}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${activeTab === 'dashboard' ? 'bg-zinc-800 text-emerald-400 font-medium' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}
               >
                 <Activity className="w-4 h-4" />
                 Desempenho
               </button>
-              <button 
+              <button
                 onClick={() => setActiveTab('pomodoro')}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${activeTab === 'pomodoro' ? 'bg-zinc-800 text-emerald-400 font-medium' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}
               >
@@ -314,7 +337,7 @@ const App: React.FC = () => {
           {/* Mobile only: Chat */}
           <div className="md:hidden">
             <div className="space-y-1">
-              <button 
+              <button
                 onClick={() => setActiveTab('chat')}
                 className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm transition-all ${activeTab === 'chat' ? 'bg-zinc-800 text-emerald-400 font-medium' : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'}`}
               >
@@ -328,7 +351,7 @@ const App: React.FC = () => {
         <div className="p-4 border-t border-zinc-800">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-8 h-8 rounded-full bg-emerald-500 flex items-center justify-center font-bold text-zinc-900">
-              {studentInfo?.name.substring(0,2).toUpperCase() || 'AL'}
+              {studentInfo?.name.substring(0, 2).toUpperCase() || 'AL'}
             </div>
             <div>
               <p className="text-sm font-medium">{studentInfo?.name || 'Aluno'}</p>
@@ -361,35 +384,35 @@ const App: React.FC = () => {
             </p>
           </div>
           <div className="flex items-center gap-4">
-             <button 
-               onClick={() => setShowTour(!showTour)} 
-               className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm border ${showTour ? 'bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200' : 'bg-zinc-50 text-zinc-500 border-zinc-200 hover:bg-zinc-100'}`}
-             >
-               <Lightbulb className="w-4 h-4" />
-               {showTour ? 'Tour Ativado' : 'Tour Desativado'}
-             </button>
-             <span className="text-sm font-medium px-4 py-1.5 bg-emerald-100 text-emerald-800 rounded-full border border-emerald-200 shadow-sm">
-               Dia {currentDay} de {days}
-             </span>
+            <button
+              onClick={() => setShowTour(!showTour)}
+              className={`flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold transition-all shadow-sm border ${showTour ? 'bg-amber-100 text-amber-700 border-amber-200 hover:bg-amber-200' : 'bg-zinc-50 text-zinc-500 border-zinc-200 hover:bg-zinc-100'}`}
+            >
+              <Lightbulb className="w-4 h-4" />
+              {showTour ? 'Tour Ativado' : 'Tour Desativado'}
+            </button>
+            <span className="text-sm font-medium px-4 py-1.5 bg-emerald-100 text-emerald-800 rounded-full border border-emerald-200 shadow-sm">
+              Dia {currentDay} de {days}
+            </span>
           </div>
         </header>
 
         <div className="flex-1 p-8 flex flex-col md:flex-row gap-8">
           <div className="flex-1 max-w-4xl space-y-6">
-            
+
             {activeTab === 'study' && (
               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                <TourTip 
-                  show={showTour} 
-                  title="Plano do Dia" 
-                  description={`Este e o seu roteiro de estudos para hoje. Complete cada tarefa marcando como concluida e responda os quizzes. Quando todas estiverem finalizadas, o botao "Finalizar Dia e Avancar" sera liberado.`} 
+                <TourTip
+                  show={showTour}
+                  title="Plano do Dia"
+                  description={`Este e o seu roteiro de estudos para hoje. Complete cada tarefa marcando como concluida e responda os quizzes. Quando todas estiverem finalizadas, o botao "Finalizar Dia e Avancar" sera liberado.`}
                 />
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100 mb-6">
                   <ProgressBar currentDay={currentDay} totalDays={days} />
                 </div>
-                
-                <StudyDay 
-                  day={currentDay} 
+
+                <StudyDay
+                  day={currentDay}
                   onTaskComplete={handleTaskComplete}
                   tasks={plan.schedule?.[currentDay - 1]?.tasks || [
                     {
@@ -409,13 +432,13 @@ const App: React.FC = () => {
                       objective: 'Resolver questoes no estilo da prova UNIOESTE',
                       type: 'quiz',
                       quiz: [
-                        { question: `Questao de ${getPrimarySubject()} para revisao do dia ${currentDay}`, options: ['Alternativa A', 'Alternativa B', 'Alternativa C', 'Alternativa D'], answer: 'Alternativa A' } 
+                        { question: `Questao de ${getPrimarySubject()} para revisao do dia ${currentDay}`, options: ['Alternativa A', 'Alternativa B', 'Alternativa C', 'Alternativa D'], answer: 'Alternativa A' }
                       ],
                       completed: false
                     }
-                  ]} 
+                  ]}
                 />
-                
+
                 <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100 mt-6">
                   <div className="flex items-center gap-3 mb-3">
                     <Lightbulb className="w-5 h-5 text-amber-500" />
@@ -432,16 +455,15 @@ const App: React.FC = () => {
                       Complete todas as tarefas do dia para poder avancar.
                     </p>
                   )}
-                  <button 
+                  <button
                     onClick={handleNextDay}
                     disabled={currentDay >= days || !isCurrentDayComplete()}
-                    className={`px-8 py-3 rounded-xl font-bold transition-all shadow-sm flex items-center gap-2 ${
-                      currentDay >= days 
-                        ? 'bg-emerald-100 text-emerald-700 cursor-default border border-emerald-200' 
-                        : !isCurrentDayComplete()
-                          ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
-                          : 'bg-zinc-900 text-white hover:bg-emerald-500 hover:text-zinc-950 focus:ring-4 ring-emerald-100 transform active:scale-95'
-                    }`}
+                    className={`px-8 py-3 rounded-xl font-bold transition-all shadow-sm flex items-center gap-2 ${currentDay >= days
+                      ? 'bg-emerald-100 text-emerald-700 cursor-default border border-emerald-200'
+                      : !isCurrentDayComplete()
+                        ? 'bg-zinc-200 text-zinc-400 cursor-not-allowed'
+                        : 'bg-zinc-900 text-white hover:bg-emerald-500 hover:text-zinc-950 focus:ring-4 ring-emerald-100 transform active:scale-95'
+                      }`}
                   >
                     {currentDay >= days ? "Plano Concluido!" : "Finalizar Dia e Avancar"}
                   </button>
@@ -450,86 +472,86 @@ const App: React.FC = () => {
             )}
 
             {activeTab === 'materials' && (
-               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                 <TourTip 
-                   show={showTour} 
-                   title="Seus Materiais" 
-                   description="Aqui ficam os resumos gerados conforme voce avanca nos dias de estudo. Complete dias para acumular materiais." 
-                 />
-                 <ContentArea summaries={
-                   Array.from({ length: currentDay }, (_, i) => ({
-                     day: i + 1,
-                     summary: plan.schedule?.[i]?.summary || `Resumo do dia ${i + 1} - ${difficulties[i % difficulties.length]?.subject || 'Estudo geral'}`,
-                     mindmapUrl: '#'
-                   }))
-                 } />
-               </div>
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <TourTip
+                  show={showTour}
+                  title="Seus Materiais"
+                  description="Aqui ficam os resumos gerados conforme voce avanca nos dias de estudo. Complete dias para acumular materiais."
+                />
+                <ContentArea summaries={
+                  Array.from({ length: currentDay }, (_, i) => ({
+                    day: i + 1,
+                    summary: plan.schedule?.[i]?.summary || `Resumo do dia ${i + 1} - ${difficulties[i % difficulties.length]?.subject || 'Estudo geral'}`,
+                    mindmapUrl: '#'
+                  }))
+                } />
+              </div>
             )}
 
             {activeTab === 'dashboard' && (
-               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
-                 <PerformanceDashboard 
-                   showTour={showTour} 
-                   currentDay={currentDay} 
-                   totalDays={days}
-                   subjects={difficulties.map((d: any) => d.subject)}
-                 />
-               </div>
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                <PerformanceDashboard
+                  showTour={showTour}
+                  currentDay={currentDay}
+                  totalDays={days}
+                  subjects={difficulties.map((d: any) => d.subject)}
+                />
+              </div>
             )}
 
             {activeTab === 'flashcards' && (
-               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-2xl mx-auto w-full">
-                 <Flashcards showTour={showTour} />
-               </div>
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-2xl mx-auto w-full">
+                <Flashcards showTour={showTour} />
+              </div>
             )}
 
             {activeTab === 'cases' && (
-               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl mx-auto w-full">
-                 <ClinicalCases showTour={showTour} />
-               </div>
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 max-w-3xl mx-auto w-full">
+                <ClinicalCases showTour={showTour} />
+              </div>
             )}
 
             {activeTab === 'errors' && (
-               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
-                 <ErrorNotebook showTour={showTour} />
-               </div>
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 w-full">
+                <ErrorNotebook showTour={showTour} />
+              </div>
             )}
 
             {activeTab === 'pomodoro' && (
-               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 flex justify-center mt-12 w-full">
-                 <Pomodoro showTour={showTour} />
-               </div>
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 flex justify-center mt-12 w-full">
+                <Pomodoro showTour={showTour} />
+              </div>
             )}
-            
+
             {activeTab === 'chat' && (
-               <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 h-[700px] bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden flex flex-col md:hidden">
-                 <TutorChat profile={{ name: studentInfo?.name || 'Aluno' } as any} />
-               </div>
+              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 h-[700px] bg-white rounded-2xl shadow-sm border border-zinc-100 overflow-hidden flex flex-col md:hidden">
+                <TutorChat profile={{ name: studentInfo?.name || 'Aluno' } as any} />
+              </div>
             )}
 
           </div>
 
           {/* Desktop Right Sidebar Chat Panel */}
           <div className="hidden md:flex w-96 bg-white rounded-2xl shadow-sm border border-zinc-200 flex-col overflow-hidden h-[calc(100vh-140px)] sticky top-24">
-             <div className="bg-zinc-900 text-white p-4 flex items-center justify-between">
-               <div className="flex items-center gap-2">
-                 <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-                 <span className="font-medium text-sm">Tutor Assistente IA</span>
-               </div>
-               <MessageSquare className="w-4 h-4 text-zinc-400" />
-             </div>
-             <div className="flex-1 overflow-y-auto">
-               <TutorChat profile={{ name: studentInfo?.name || 'Aluno' } as any} />
-             </div>
+            <div className="bg-zinc-900 text-white p-4 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <div className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
+                <span className="font-medium text-sm">Tutor Assistente IA</span>
+              </div>
+              <MessageSquare className="w-4 h-4 text-zinc-400" />
+            </div>
+            <div className="flex-1 overflow-y-auto">
+              <TutorChat profile={{ name: studentInfo?.name || 'Aluno' } as any} />
+            </div>
           </div>
 
-         </div>
-       </main>
+        </div>
+      </main>
 
-       {/* Log Viewer Modal */}
-       <LogViewer isOpen={showLogViewer} onClose={() => setShowLogViewer(false)} />
-     </div>
-   );
- };
+      {/* Log Viewer Modal */}
+      <LogViewer isOpen={showLogViewer} onClose={() => setShowLogViewer(false)} />
+    </div>
+  );
+};
 
 export default App;
