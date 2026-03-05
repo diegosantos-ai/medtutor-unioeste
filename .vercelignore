@@ -1,0 +1,10 @@
+backend/
+base_conhecimento/
+venv/
+.env*
+! .env.example
+node_modules/
+dist/
+.git/
+.vercel/
+*.log
