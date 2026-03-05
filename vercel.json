@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "medtutor-unioeste",
   "buildCommand": "npm run build",
   "outputDirectory": "dist",
   "devCommand": "npm run dev",
@@ -30,8 +29,5 @@
         }
       ]
     }
-  ],
-  "env": {
-    "VITE_API_URL": "https://api.medtutor.unioeste.com"
-  }
+  ]
 }
