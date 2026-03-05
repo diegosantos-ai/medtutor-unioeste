@@ -34,3 +34,6 @@ __pycache__/
 base_conhecimento/
 backend/app/chroma_data/
 *.log
+
+.vercel
+.env*.local
