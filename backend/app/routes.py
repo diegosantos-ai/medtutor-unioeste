@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, UploadFile, File
 from sqlalchemy.orm import Session
 from sqlalchemy import func
 from typing import List
@@ -25,7 +25,11 @@ from app.schemas import (
     ClinicalCase,
     CaseAnswer,
 )
+from app.rag_service import rag_db
+from app.config import BASE_CONHECIMENTO_DIR
 import uuid
+import os
+import tempfile
 
 router = APIRouter(prefix="/api")
 
@@ -555,3 +559,39 @@ def get_user_stats(
         "streak": current_user.streak,
         "study_days": total_questions,  # Simplificação
     }
+
+
+# ============================================================================
+# RAG ENDPOINTS
+# ============================================================================
+
+
+@router.get("/rag/status")
+def get_rag_status():
+    status = rag_db.get_status()
+    return status
+
+
+@router.post("/rag/ingest")
+async def ingest_single_pdf(file: UploadFile = File(...)):
+    if not file.filename.lower().endswith(".pdf"):
+        raise HTTPException(status_code=400, detail="Only PDF files are supported")
+
+    with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as tmp:
+        content = await file.read()
+        tmp.write(content)
+        tmp_path = tmp.name
+
+    try:
+        result = rag_db.ingest_document(tmp_path)
+        return result
+    finally:
+        if os.path.exists(tmp_path):
+            os.remove(tmp_path)
+
+
+@router.post("/rag/ingest-all")
+def ingest_all_pdfs(payload: dict = None):
+    folder = payload.get("folder") if payload else None
+    results = rag_db.ingest_folder(folder)
+    return results

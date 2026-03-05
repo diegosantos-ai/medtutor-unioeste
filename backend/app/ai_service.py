@@ -7,8 +7,10 @@ from app.rag_service import rag_db
 
 genai.configure(api_key=os.environ["GEMINI_API_KEY"])
 
+
 def _get_model():
     return genai.GenerativeModel("gemini-2.5-flash")
+
 
 def generate_study_plan(profile: dict):
     model = _get_model()
@@ -54,7 +56,7 @@ def generate_study_plan(profile: dict):
         # Strip markdown json block if present
         text = response.text.replace("```json", "").replace("```", "").strip()
         data = json.loads(text)
-        
+
         # Inject real videos
         for day_schedule in data.get("schedule", []):
             for task in day_schedule.get("tasks", []):
@@ -70,14 +72,15 @@ def generate_study_plan(profile: dict):
         print("Error parsing Gemini response:", e)
         return {"weekId": 1, "schedule": []}
 
+
 def get_tutor_response(query: str, profile: dict, history: list):
     model = _get_model()
-    # Usando history com "Coordenador de Cursinho Elite" persona e "Chain of Thought"
     chat = model.start_chat()
-    
-    # Busca contexto no RAG vector DB simulado
-    rag_context = rag_db.query_context(query)
-    
+
+    rag_result = rag_db.query_context(query, max_results=3)
+    rag_context = rag_result.get("context", "")
+    sources = rag_result.get("sources", [])
+
     context_prompt = f"""
 Você é um Coordenador de Cursinho Elite para Medicina.
 Regras de conduta rigorosas: 
@@ -94,8 +97,18 @@ Perfil do aluno: {json.dumps(profile)}.
 Pergunta atual do estudante: {query}
 """
     response = chat.send_message(context_prompt)
-    
-    return {"text": response.text, "sources": [{"title": "Base Curada VectorDB RAG", "url": "#"}]}
+
+    formatted_sources = [
+        {
+            "title": s.get("title", "Unknown"),
+            "url": "#",
+            "chunk_id": s.get("chunk_id", 0),
+        }
+        for s in sources
+    ]
+
+    return {"text": response.text, "sources": formatted_sources}
+
 
 def generate_summary(subject: str, topic: str):
     model = _get_model()
@@ -119,4 +132,11 @@ def generate_summary(subject: str, topic: str):
         return json.loads(text)
     except Exception as e:
         print("Error parsing Gemini response:", e)
-        return {"title": topic, "subject": subject, "content": "Failed to generate.", "prerequisites": [], "examples": [], "externalLinks": []}
+        return {
+            "title": topic,
+            "subject": subject,
+            "content": "Failed to generate.",
+            "prerequisites": [],
+            "examples": [],
+            "externalLinks": [],
+        }

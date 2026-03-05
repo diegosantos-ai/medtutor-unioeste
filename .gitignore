@@ -26,5 +26,11 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.pyd
 .Python
 *.so
+
+# Data and Vector DB
+base_conhecimento/
+backend/app/chroma_data/
+*.log
