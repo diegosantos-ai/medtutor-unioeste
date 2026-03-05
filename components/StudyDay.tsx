@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { PlayCircle, Code2, BookOpen as BookOpenIcon, CheckCircle2, Circle } from 'lucide-react';
+import { PlayCircle, Code2, BookOpen as BookOpenIcon, CheckCircle2, Circle, Sparkles, BookOpen } from 'lucide-react';
+import { StudyMaterialModal } from './StudyMaterialModal';
 
 interface Task {
   id: string;
@@ -27,6 +28,9 @@ export const StudyDay: React.FC<StudyDayProps> = ({ day, tasks, summary, mindmap
   const [completedTasks, setCompletedTasks] = useState<Set<string>>(new Set());
   const [quizAnswers, setQuizAnswers] = useState<{ [taskId: string]: { [qIdx: number]: number } }>({});
   const [quizSubmitted, setQuizSubmitted] = useState<Set<string>>(new Set());
+
+  // Material Modal State
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null);
 
   const toggleTask = (taskId: string) => {
     setCompletedTasks(prev => {
@@ -59,17 +63,17 @@ export const StudyDay: React.FC<StudyDayProps> = ({ day, tasks, summary, mindmap
     <div className="space-y-4">
       {tasks.map(task => {
         const isCompleted = completedTasks.has(task.id) || task.completed;
-        
+
         return (
           <div key={task.id} className={`bg-white rounded-2xl p-6 shadow-sm border transition-all ${isCompleted ? 'border-emerald-200 bg-emerald-50/30' : 'border-zinc-100 hover:shadow-md'}`}>
-            
+
             <div className="flex gap-4">
               <div className="flex-shrink-0">
                 {task.type === 'video' && <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-xl flex items-center justify-center"><PlayCircle className="w-6 h-6" /></div>}
                 {task.type === 'quiz' && <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center"><Code2 className="w-6 h-6" /></div>}
                 {(task.type === 'teoria' || task.type === 'resumo') && <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-xl flex items-center justify-center"><BookOpenIcon className="w-6 h-6" /></div>}
               </div>
-              
+
               <div className="flex-1">
                 <div className="flex justify-between items-start mb-1">
                   <span className="text-xs font-bold uppercase tracking-wider text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded">{task.subject}</span>
@@ -77,6 +81,17 @@ export const StudyDay: React.FC<StudyDayProps> = ({ day, tasks, summary, mindmap
                 </div>
                 <h3 className="text-xl font-bold text-zinc-900 mb-1 leading-tight">{task.topic}</h3>
                 <p className="text-sm text-zinc-500 mb-4">{task.objective}</p>
+
+                {(task.type === 'teoria' || task.type === 'resumo') && (
+                  <button
+                    onClick={() => setSelectedTask(task)}
+                    className="mb-4 inline-flex items-center gap-2 bg-zinc-900 text-white hover:bg-emerald-600 font-bold px-4 py-2.5 rounded-xl text-sm transition-all shadow-md shadow-zinc-200 group"
+                  >
+                    <BookOpen className="w-4 h-4" />
+                    Estudar este tema
+                    <Sparkles className="w-3.5 h-3.5 text-emerald-400 group-hover:text-white" />
+                  </button>
+                )}
 
                 {task.type === 'video' && task.video_url && (
                   <div className="bg-zinc-50 p-4 rounded-xl border border-zinc-100 mb-4 flex items-center justify-between">
@@ -104,7 +119,7 @@ export const StudyDay: React.FC<StudyDayProps> = ({ day, tasks, summary, mindmap
                           <div className="grid grid-cols-1 gap-2">
                             {q.options.map((opt, oIdx) => {
                               let btnClass = "border-zinc-200 bg-white hover:border-emerald-400 hover:bg-emerald-50 text-zinc-700";
-                              
+
                               if (isSubmitted) {
                                 if (oIdx === correctIdx) {
                                   btnClass = "border-emerald-500 bg-emerald-50 text-emerald-800";
@@ -118,8 +133,8 @@ export const StudyDay: React.FC<StudyDayProps> = ({ day, tasks, summary, mindmap
                               }
 
                               return (
-                                <button 
-                                  key={opt} 
+                                <button
+                                  key={opt}
                                   onClick={() => handleQuizAnswer(task.id, qIdx, oIdx)}
                                   disabled={isSubmitted}
                                   className={`text-left px-4 py-3 rounded-xl border transition-colors text-sm flex items-center justify-between ${btnClass}`}
@@ -154,11 +169,10 @@ export const StudyDay: React.FC<StudyDayProps> = ({ day, tasks, summary, mindmap
                 {task.type !== 'quiz' && (
                   <button
                     onClick={() => toggleTask(task.id)}
-                    className={`mt-4 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                      isCompleted 
-                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200' 
+                    className={`mt-4 flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${isCompleted
+                        ? 'bg-emerald-100 text-emerald-700 border border-emerald-200'
                         : 'bg-zinc-100 text-zinc-600 hover:bg-zinc-200 border border-zinc-200'
-                    }`}
+                      }`}
                   >
                     {isCompleted ? <CheckCircle2 className="w-4 h-4" /> : <Circle className="w-4 h-4" />}
                     {isCompleted ? 'Concluido' : 'Marcar como concluido'}
@@ -166,10 +180,17 @@ export const StudyDay: React.FC<StudyDayProps> = ({ day, tasks, summary, mindmap
                 )}
               </div>
             </div>
-            
           </div>
         );
       })}
+
+      {/* Material Modal */}
+      <StudyMaterialModal
+        isOpen={!!selectedTask}
+        onClose={() => setSelectedTask(null)}
+        subject={selectedTask?.subject || ''}
+        topic={selectedTask?.topic || ''}
+      />
     </div>
   );
 };
