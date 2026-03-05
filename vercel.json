@@ -8,10 +8,6 @@
   "framework": "vite",
   "rewrites": [
     {
-      "source": "/api/(.*)",
-      "destination": "https://api.medtutor.unioeste.com/api/$1"
-    },
-    {
       "source": "/(.*)",
       "destination": "/index.html"
     }
