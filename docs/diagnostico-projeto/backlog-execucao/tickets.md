@@ -29,3 +29,8 @@ Para mitigar a dívida técnica e adequar o projeto completamente à governança
 - **Ticket 501:** Investigar e corrigir a falha silenciosa de "falta de conexão/tentar novamente" enfrentada pelos usuários. Adicionar block-try-catch para expor a causa raiz real no backend/frontend.
 - **Ticket 502:** Depurar e repavimentar o fluxo de RAG: aferir leitura dos materiais base, fontes vetoriais no ChromaDB e coerência do contexto enviado ao LLM.
 - **Ticket 503:** Otimizar prompts do modelo Gemini (`SYSTEM_PROMPT`) visando aumentar a performance pedagógica, contornando travas de recusa por excesso de tokens e melhorando a formatação das respostas.
+
+## Sprint 6: Infraestrutura como Código (Terraform/AWS)
+- **Ticket 601:** Ajustar o template do Terraform localizado no diretório `aws/` para espelhar a nova topologia, contemplando o Frontend empacotado no Nginx, o Backend FastAPI e a stack de observabilidade (PLG Observer Stack).
+- **Ticket 602:** Gerar os empacotamentos adequados para o ambiente, criando o `Dockerfile.frontend` (baseado em Nginx) e unificando as imagens no arquivo `docker-compose.prod.yml`.
+- **Ticket 603:** Adicionar uma regra de pipeline e os respectivos targets no `Makefile` (ex: `make deploy-aws`, `make plan-aws`) para garantir um fluxo de deploy seguro, rastreável e idempotente.

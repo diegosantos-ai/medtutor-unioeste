@@ -1,0 +1,42 @@
+# Terraform working directory
+.terraform/
+terraform.tfvars
+
+# Terraform state files
+*.tfstate
+*.tfstate.*
+
+# Crash logs
+crash.log
+crash.*.log
+
+# Sensitive variable files
+*.tfvars
+*.tfvars.json
+
+# Plan files
+*.tfplan
+plan.out
+
+# CLI configuration files
+.terraformrc
+terraform.rc
+
+# Override files
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# macOS / Linux / editor
+.DS_Store
+*.swp
+*.swo
+*~
+
+# IDEs
+.vscode/
+.idea/
+doc-consulta-conceitos.md
+relatorio-encerramento.md
+status-final-estudar.md

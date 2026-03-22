@@ -56,3 +56,18 @@ test: ## Executa baterias de testes (Python via Docker e NPM local)
 run-dev: up ## Levanta a infraestrutura de background e serve o vite em watch mode
 	@echo "$(GREEN)Iniciando Frontend Web com Live Reload...$(RESET)"
 	npm run dev
+
+# ==========================================
+# ☁️ DEPLOY DE PRODUÇÃO / AWS TERRAFORM
+# ==========================================
+build-prod: ## Contrói as imagens prontas para produção (Nginx + Frontend, FastAPI isolada)
+	@echo "$(CYAN)Efetuando build da arquitetura de produção...$(RESET)"
+	docker compose -f docker-compose.prod.yml build
+
+up-prod: ## Sobe a infraestrutura usando docker-compose.prod.yml (Nginx e Sem Vite)
+	@echo "$(GREEN)Iniciando ambiente de Produção via compose...$(RESET)"
+	COMPOSE_PROJECT_NAME=$$(basename $(CURDIR))-prod docker compose -f docker-compose.prod.yml up -d
+
+deploy-aws: ## Orquestra a infraestrutura AWS via Terraform (aws/envs/dev)
+	@echo "$(CYAN)Inicializando e aplicando Terraform na AWS...$(RESET)"
+	cd aws/envs/dev && terraform init && terraform apply -auto-approve
