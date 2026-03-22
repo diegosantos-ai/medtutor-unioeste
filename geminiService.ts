@@ -25,7 +25,8 @@ async function fetchWithRetry(url: string, options: any, retries: number = 3) {
 }
 
 // Helper for backend API routing
-async function callBackendApi(action: string, payload: any) {
+// Helper for backend API routing
+async function callBackendApi(endpoint: string, payload: any) {
   const token = localStorage.getItem('medtutor_token');
 
   if (!navigator.onLine) {
@@ -33,13 +34,13 @@ async function callBackendApi(action: string, payload: any) {
   }
 
   try {
-    const response = await fetchWithRetry('/api/ai', {
+    const response = await fetchWithRetry(`/api${endpoint}`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify({ action, payload })
+      body: JSON.stringify(payload)
     });
 
     if (!response.ok) {
@@ -63,7 +64,7 @@ export const getTutorResponse = async (
   history: Message[]
 ): Promise<{ text: string; sources?: any[] }> => {
   try {
-    const data = await callBackendApi('chat', { query, profile, history });
+    const data = await callBackendApi('/chat/tutor', { query, profile, history });
     return { text: data.text, sources: data.sources };
   } catch (error) {
     console.error('Tutor response error:', error);
@@ -73,7 +74,7 @@ export const getTutorResponse = async (
 
 export const generateStudyPlan = async (profile: UserProfile): Promise<WeeklyPlan> => {
   try {
-    const data = await callBackendApi('plan', { profile });
+    const data = await callBackendApi('/study-plan', profile);
     return JSON.parse(data.text);
   } catch (error) {
     console.error('Study plan error:', error);
@@ -86,7 +87,7 @@ export const generateLargeQuizFromContext = async (
   subject: string
 ): Promise<QuizItem[]> => {
   try {
-    const data = await callBackendApi('quizFromContext', { context, subject });
+    const data = await callBackendApi('/chat/tutor', { query: `Gere um quiz com 5 questoes de multipla escolha sobre: ${context || subject || 'vestibular UNIOESTE'}. Retorne em formato JSON com os campos: question, options (array de strings), correctAnswer (indice 0-based), explanation.`, profile: { name: 'Estudante' }, history: [] });
     return JSON.parse(data.text);
   } catch (error) {
     console.error('Quiz generation error:', error);
@@ -100,7 +101,7 @@ export const generateQuiz = async (
   level: DifficultyLevel = 'Intermediário'
 ): Promise<QuizItem[]> => {
   try {
-    const data = await callBackendApi('quiz', { subject, topic, level });
+    const data = await callBackendApi('/chat/tutor', { query: `Gere um quiz com 5 questoes de multipla escolha sobre: ${subject} - ${topic} - ${level}. Retorne em formato JSON com os campos: question, options, correctAnswer, explanation.`, profile: { name: 'Estudante' }, history: [] });
     return JSON.parse(data.text);
   } catch (error) {
     console.error('Quiz generation error:', error);
@@ -113,7 +114,7 @@ export const generateSummary = async (
   topic: string
 ): Promise<ContentResource> => {
   try {
-    const data = await callBackendApi('summary', { subject, topic });
+    const data = await callBackendApi('/summary', { subject, topic });
     return JSON.parse(data.text);
   } catch (error) {
     console.error('Summary generation error:', error);
