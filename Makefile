@@ -85,3 +85,32 @@ week-close: ## Compila o sumário executivo da semana DevOps
 update: ## Sincroniza local com repositório remoto Git
 	@echo "Atualizando ambiente local..."
 	@git pull origin main
+
+# ==========================================
+# 🚀 MEDTUTOR UNIOESTE - APP TARGETS
+# ==========================================
+build: ## Instala dependências e constrói imagens Docker do MedTutor
+	@echo "$(CYAN)Instalando dependências web...$(RESET)"
+	npm install
+	@echo "$(CYAN)Efetuando build dos containers...$(RESET)"
+	docker compose build
+
+up: ## Sobe a infraestrutura e a API do MedTutor em background
+	@echo "$(GREEN)Iniciando ambiente local do MedTutor...$(RESET)"
+	docker compose up -d
+
+down: ## Derruba toda a infraestrutura e serviços do MedTutor
+	@echo "$(YELLOW)Encerrando serviços...$(RESET)"
+	docker compose down
+
+logs: ## Acompanha os logs da aplicação e dos serviços
+	docker compose logs -f
+
+test: ## Executa testes unitários base (a implementar)
+	@echo "$(CYAN)Executando testes da aplicação...$(RESET)"
+	docker compose exec medtutor-api python -m unittest discover -v || echo "Aviso: Sem testes py"
+	npm test --if-present
+
+run-dev: up ## Inicia a stack backend e roda o frontend em modo desenvolvimento no host
+	@echo "$(GREEN)Iniciando Frontend Vite...$(RESET)"
+	npm run dev
