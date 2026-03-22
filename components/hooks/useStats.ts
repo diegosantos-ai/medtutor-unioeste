@@ -26,10 +26,10 @@ export function useStats(): UseStatsReturn {
   const fetchStats = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    
+
     // Simula delay de API
     await new Promise(resolve => setTimeout(resolve, 400));
-    
+
     try {
       // Usa dados mockados
       setStats(MOCK_STATS);

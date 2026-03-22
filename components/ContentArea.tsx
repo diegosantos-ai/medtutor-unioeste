@@ -17,7 +17,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({ summaries }) => {
           <p className="text-sm text-zinc-500 mt-1">Seus resumos e mapas mentais salvos para revisão rápida.</p>
         </div>
       </div>
-      
+
       <div className="p-6">
         {summaries.length === 0 ? (
           <div className="text-center py-12 text-zinc-400">
@@ -33,7 +33,7 @@ export const ContentArea: React.FC<ContentAreaProps> = ({ summaries }) => {
                   <span className="bg-zinc-100 text-zinc-600 text-xs font-bold px-2 py-1 rounded">DIA {day}</span>
                 </div>
                 <h3 className="font-bold text-zinc-800 line-clamp-2 leading-snug mb-4">{summary}</h3>
-                
+
                 <div className="flex items-center gap-2 mt-auto">
                   <button className="flex-1 flex justify-center items-center gap-2 bg-zinc-100 text-zinc-700 text-sm font-medium py-2 rounded-lg hover:bg-zinc-200 transition">
                     <Download className="w-4 h-4" /> Resumo

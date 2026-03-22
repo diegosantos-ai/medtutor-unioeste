@@ -11,7 +11,7 @@ interface ErrorProps {
 
 export const ErrorNotebook: React.FC<ErrorProps> = ({ showTour = false }) => {
   const { errors, isLoading, error: errorMsg, refetch } = useErrors();
-  
+
   const [currentIndex, setCurrentIndex] = useState(0);
   const [selectedOpt, setSelectedOpt] = useState<string | null>(null);
   const [answered, setAnswered] = useState(false);
@@ -80,7 +80,7 @@ export const ErrorNotebook: React.FC<ErrorProps> = ({ showTour = false }) => {
               <p className="text-zinc-500 text-sm">Parabéns! Você ainda não tem erros registrados.</p>
             </div>
           </div>
-          
+
           <div className="bg-emerald-50 border border-emerald-200 rounded-xl p-6 text-center">
             <p className="text-emerald-800 mb-2">
               Continue praticando! Os erros aparecerão aqui automaticamente conforme você responder questões.
@@ -94,10 +94,10 @@ export const ErrorNotebook: React.FC<ErrorProps> = ({ showTour = false }) => {
   if (showHistory) {
     return (
       <div className="max-w-4xl mx-auto w-full">
-        <TourTip 
-          show={showTour} 
-          title="Caderno de Erros Inteligente" 
-          description="Sua aprovação mora onde você erra. Este caderno agrupa questões que você falhou no passado. Clique em 'Treinar Foco' para tentar resolver novamente." 
+        <TourTip
+          show={showTour}
+          title="Caderno de Erros Inteligente"
+          description="Sua aprovação mora onde você erra. Este caderno agrupa questões que você falhou no passado. Clique em 'Treinar Foco' para tentar resolver novamente."
         />
         <div className="bg-white rounded-3xl shadow-sm border border-zinc-100 p-8">
           <div className="flex items-center gap-3 mb-8">
@@ -125,7 +125,7 @@ export const ErrorNotebook: React.FC<ErrorProps> = ({ showTour = false }) => {
                   </span>
                 </div>
                 <p className="text-zinc-800 font-medium line-clamp-2 mb-3">{error.enunciado}</p>
-                
+
                 <div className="p-3 bg-zinc-50 rounded-lg border-l-4 border-l-purple-500">
                   <h4 className="flex items-center gap-2 text-xs font-bold text-purple-700 uppercase mb-1">
                     <BrainCircuit className="w-4 h-4" /> Explicação
@@ -137,13 +137,13 @@ export const ErrorNotebook: React.FC<ErrorProps> = ({ showTour = false }) => {
               </div>
             ))}
           </div>
-          
-          <button 
-            onClick={() => { 
-              setShowHistory(false); 
-              setCurrentIndex(0); 
-              setSelectedOpt(null); 
-              setAnswered(false); 
+
+          <button
+            onClick={() => {
+              setShowHistory(false);
+              setCurrentIndex(0);
+              setSelectedOpt(null);
+              setAnswered(false);
             }}
             className="mt-6 px-6 py-3 bg-zinc-900 text-white rounded-xl font-bold w-full hover:bg-emerald-600 transition-colors"
           >
@@ -163,7 +163,7 @@ export const ErrorNotebook: React.FC<ErrorProps> = ({ showTour = false }) => {
 
   return (
     <div className="bg-white rounded-3xl shadow-sm border border-zinc-100 max-w-4xl mx-auto overflow-hidden flex flex-col md:flex-row">
-      
+
       {/* Sidebar de Contexto */}
       <div className="bg-zinc-950 p-6 md:w-64 text-zinc-100 flex-shrink-0 flex flex-col items-start relative">
         <BookX className="absolute bottom-4 right-4 w-32 h-32 text-zinc-900 z-0" />
@@ -191,8 +191,8 @@ export const ErrorNotebook: React.FC<ErrorProps> = ({ showTour = false }) => {
           <span className="text-sm font-bold text-zinc-400">
             Questão {currentIndex + 1} de {errors.length}
           </span>
-          <button 
-            onClick={() => setShowHistory(true)} 
+          <button
+            onClick={() => setShowHistory(true)}
             className="text-xs font-bold text-zinc-500 hover:text-zinc-800 underline"
           >
             Ver Diário de Erros Completo
@@ -207,7 +207,7 @@ export const ErrorNotebook: React.FC<ErrorProps> = ({ showTour = false }) => {
           {Object.entries(alternativas).map(([key, value]) => {
             const isSelected = selectedOpt === key;
             const isCorrectOption = key === currentError.resposta_correta.toUpperCase();
-            
+
             let btnClass = "border-zinc-200 bg-white hover:border-zinc-300 text-zinc-700";
             if (answered) {
               if (isCorrectOption) btnClass = "border-emerald-500 bg-emerald-50 text-emerald-900";
@@ -216,7 +216,7 @@ export const ErrorNotebook: React.FC<ErrorProps> = ({ showTour = false }) => {
             }
 
             return (
-              <button 
+              <button
                 key={key}
                 onClick={() => handleSelect(key)}
                 className={`w-full text-left px-5 py-4 rounded-xl border-2 transition-all font-medium flex gap-3 group ${btnClass}`}
@@ -234,14 +234,14 @@ export const ErrorNotebook: React.FC<ErrorProps> = ({ showTour = false }) => {
 
         <AnimatePresence>
           {answered && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 10, height: 0 }}
               animate={{ opacity: 1, y: 0, height: 'auto' }}
               className="mt-6 pt-6 border-t border-zinc-100"
             >
               <div className={`rounded-xl p-5 border relative overflow-hidden ${
-                isCorrect 
-                  ? 'bg-emerald-50 border-emerald-100' 
+                isCorrect
+                  ? 'bg-emerald-50 border-emerald-100'
                   : 'bg-purple-50 border-purple-100'
               }`}>
                 <BrainCircuit className={`absolute -right-4 -bottom-4 w-24 h-24 ${
@@ -256,18 +256,18 @@ export const ErrorNotebook: React.FC<ErrorProps> = ({ showTour = false }) => {
                 <p className={`text-sm leading-relaxed max-w-xl relative z-10 ${
                   isCorrect ? 'text-emerald-800' : 'text-purple-800'
                 }`}>
-                  {isCorrect 
-                    ? "Você acertou desta vez! Continue praticando para fixar o conteúdo." 
+                  {isCorrect
+                    ? "Você acertou desta vez! Continue praticando para fixar o conteúdo."
                     : currentError.explicacao}
                 </p>
               </div>
 
               <div className="mt-6 flex justify-end">
-                <button 
+                <button
                   onClick={handleNext}
                   className="flex items-center gap-2 bg-zinc-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-zinc-800 transition-colors shadow-sm"
                 >
-                  {currentIndex < errors.length - 1 ? 'Próximo Erro' : 'Voltar ao Caderno'} 
+                  {currentIndex < errors.length - 1 ? 'Próximo Erro' : 'Voltar ao Caderno'}
                   <ChevronRight className="w-4 h-4" />
                 </button>
               </div>

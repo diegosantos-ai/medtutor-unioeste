@@ -112,8 +112,8 @@ class Logger {
 
     // Também loga no console em desenvolvimento
     if (import.meta.env.DEV) {
-      const consoleMethod = level === 'ERROR' || level === 'FATAL' ? 'error' 
-        : level === 'WARN' ? 'warn' 
+      const consoleMethod = level === 'ERROR' || level === 'FATAL' ? 'error'
+        : level === 'WARN' ? 'warn'
         : 'log';
       console[consoleMethod](`[${level}] ${component}:`, message, data, error);
     }
@@ -245,9 +245,9 @@ export function useLogger(component: string) {
     info: (message: string, data?: any) => logger.info(component, message, data),
     warn: (message: string, data?: any) => logger.warn(component, message, data),
     error: (message: string, error?: Error, data?: any) => logger.error(component, message, error, data),
-    logPerformance: (action: string, durationMs: number, data?: any) => 
+    logPerformance: (action: string, durationMs: number, data?: any) =>
       logger.logPerformance(component, action, durationMs, data),
-    logUserAction: (action: string, details?: any) => 
+    logUserAction: (action: string, details?: any) =>
       logger.logUserAction(action, component, details),
   };
 }

@@ -19,17 +19,17 @@ export function useErrors(): UseErrorsReturn {
     const startTime = performance.now();
     setIsLoading(true);
     setError(null);
-    
+
     logger.info('Iniciando carregamento de erros');
-    
+
     try {
       // Simula delay de API
       await new Promise(resolve => setTimeout(resolve, 600));
-      
+
       // Usa dados mockados
       const data = MOCK_ERROR_QUESTIONS;
       setErrors(data);
-      
+
       const duration = Math.round(performance.now() - startTime);
       logger.logPerformance('carregar erros', duration, { count: data.length });
     } catch (err) {

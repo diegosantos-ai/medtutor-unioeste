@@ -24,10 +24,10 @@ export const MindMapGallery: React.FC<MindMapProps> = ({ showTour = false }) => 
 
   return (
     <>
-      <TourTip 
-        show={showTour} 
-        title="Mapas Mentais e Galeria Visual" 
-        description="Clique nos cartões para expandir o mapa em HD. Esses mapas são curados com base nas estatísticas das provas para que você memorize a imagem e o conceito juntos." 
+      <TourTip
+        show={showTour}
+        title="Mapas Mentais e Galeria Visual"
+        description="Clique nos cartões para expandir o mapa em HD. Esses mapas são curados com base nas estatísticas das provas para que você memorize a imagem e o conceito juntos."
       />
       <div className="bg-white rounded-3xl shadow-sm border border-zinc-100 p-8 max-w-5xl mx-auto w-full relative">
         <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
@@ -38,12 +38,12 @@ export const MindMapGallery: React.FC<MindMapProps> = ({ showTour = false }) => 
           </h2>
           <p className="text-zinc-500 text-sm mt-2">Mapas mentais de alta retenção desenhados para revisão ativa.</p>
         </div>
-        
+
         <div className="relative">
           <Search className="w-5 h-5 absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
-          <input 
-            type="text" 
-            placeholder="Buscar assunto..." 
+          <input
+            type="text"
+            placeholder="Buscar assunto..."
             className="pl-10 pr-4 py-2 bg-zinc-50 border border-zinc-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-full md:w-64"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
@@ -53,7 +53,7 @@ export const MindMapGallery: React.FC<MindMapProps> = ({ showTour = false }) => 
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
         {filtered.map(map => (
-          <div 
+          <div
             key={map.id}
             onClick={() => setSelectedMap(map.id)}
             className="group cursor-pointer bg-zinc-50 border border-zinc-100 rounded-2xl p-1 relative overflow-hidden hover:border-emerald-200 hover:shadow-md transition-all"
@@ -63,14 +63,14 @@ export const MindMapGallery: React.FC<MindMapProps> = ({ showTour = false }) => 
               <div className="absolute inset-0 bg-gradient-to-br from-zinc-200 to-zinc-300 flex items-center justify-center">
                 <Map className="w-12 h-12 text-zinc-400 opacity-50 group-hover:scale-110 transition-transform duration-500" />
               </div>
-              
+
               <div className="absolute top-2 right-2 flex gap-1 transform translate-y-[-150%] opacity-0 group-hover:translate-y-0 group-hover:opacity-100 transition-all duration-300">
                 <button className="w-8 h-8 bg-white/90 backdrop-blur rounded-full flex items-center justify-center text-zinc-700 hover:text-emerald-600 hover:bg-white">
                   <Download className="w-4 h-4" />
                 </button>
               </div>
             </div>
-            
+
             <div className="p-4">
               <span className={`text-[10px] font-bold px-2 py-1 rounded mb-2 inline-block ${map.color}`}>
                 {map.subject}
@@ -92,13 +92,13 @@ export const MindMapGallery: React.FC<MindMapProps> = ({ showTour = false }) => 
       {/* Modal Visualizador */}
       <AnimatePresence>
         {selectedMap && (
-          <motion.div 
+          <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-zinc-950/80 backdrop-blur-sm"
           >
-            <motion.div 
+            <motion.div
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
@@ -119,7 +119,7 @@ export const MindMapGallery: React.FC<MindMapProps> = ({ showTour = false }) => 
                   </button>
                 </div>
               </div>
-              
+
               <div className="flex-1 overflow-auto p-4 bg-zinc-100 flex items-center justify-center min-h-[50vh]">
                 {/* Aqui entra a imagem hd real do RAG ou Bucket */}
                 <div className="w-full h-full min-h-[400px] border-2 border-dashed border-zinc-300 rounded-2xl flex flex-col items-center justify-center text-zinc-400">

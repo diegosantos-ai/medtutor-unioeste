@@ -13,7 +13,7 @@ export const TourTip: React.FC<TourTipProps> = ({ show = true, title, descriptio
   return (
     <AnimatePresence>
       {show && (
-        <motion.div 
+        <motion.div
           initial={{ opacity: 0, y: -10, height: 0 }}
           animate={{ opacity: 1, y: 0, height: 'auto' }}
           exit={{ opacity: 0, y: -10, height: 0 }}

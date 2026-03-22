@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.database import engine, Base
 from app.routes import router
 
-# In a real scenario with Alembic, we don't strictly need create_all here, 
+# In a real scenario with Alembic, we don't strictly need create_all here,
 # but it's good for a quick start if migrations aren't fully set up yet.
 # Base.metadata.create_all(bind=engine)
 

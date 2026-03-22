@@ -36,13 +36,13 @@ router = APIRouter(prefix="/api")
 
 @router.post("/config-study-plan")
 def config_study_plan(
-    payload: dict, 
+    payload: dict,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user)
 ):
     days = payload.get("days", 30)
     difficulties = payload.get("difficulties", [])
-    
+
     current_user.difficulties = difficulties
     db.commit()
 
@@ -55,7 +55,7 @@ def config_study_plan(
 
 @router.post("/study-plan")
 def create_study_plan(
-    payload: dict, 
+    payload: dict,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user)
 ):
@@ -75,7 +75,7 @@ def create_study_plan(
 
 @router.post("/chat/tutor")
 def chat_with_tutor(
-    payload: dict, 
+    payload: dict,
     db: Session = Depends(get_db),
     current_user: models.User = Depends(get_current_active_user)
 ):

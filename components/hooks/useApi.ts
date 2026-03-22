@@ -18,7 +18,7 @@ export function useApi<T, P = void>(apiFunction: ApiFunction<T, P>) {
   const execute = useCallback(
     async (params: P): Promise<T | null> => {
       setState(prev => ({ ...prev, isLoading: true, error: null }));
-      
+
       try {
         const result = await apiFunction(params);
         setState({ data: result, isLoading: false, error: null });

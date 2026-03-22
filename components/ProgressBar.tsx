@@ -8,7 +8,7 @@ interface ProgressBarProps {
 
 export const ProgressBar: React.FC<ProgressBarProps> = ({ currentDay, totalDays }) => {
   const percent = Math.min(100, Math.round((currentDay / totalDays) * 100));
-  
+
   return (
     <div className="w-full">
       <div className="flex justify-between items-end mb-3">
@@ -26,7 +26,7 @@ export const ProgressBar: React.FC<ProgressBarProps> = ({ currentDay, totalDays 
           <span className="text-xs font-medium text-zinc-400 uppercase tracking-widest">{currentDay} de {totalDays} dias</span>
         </div>
       </div>
-      
+
       <div className="relative w-full bg-zinc-100 rounded-full h-3 overflow-hidden shadow-inner">
         <div
           className="absolute top-0 left-0 h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full transition-all duration-700 ease-out"

@@ -87,9 +87,9 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ showTour = false }) => {
     return (
       <>
         {showTour && (
-          <TourTip 
-            title="Revisão Concluída" 
-            text="Você finalizou os flashcards agendados para hoje. O algoritmo SM-2 separou os próximos baseado nos seus erros e acertos." 
+          <TourTip
+            title="Revisão Concluída"
+            text="Você finalizou os flashcards agendados para hoje. O algoritmo SM-2 separou os próximos baseado nos seus erros e acertos."
           />
         )}
         <div className="flex flex-col items-center justify-center h-96 bg-white rounded-3xl shadow-sm border border-zinc-100 p-8">
@@ -114,9 +114,9 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ showTour = false }) => {
   return (
     <>
       {showTour && (
-        <TourTip 
-          title="Repetição Espaçada (SRS)" 
-          text="Aqui você revisa o conteúdo através de Flashcards. Responda mentalmente e clique para virar. Classifique sua facilidade para que o algoritmo agende a próxima revisão." 
+        <TourTip
+          title="Repetição Espaçada (SRS)"
+          text="Aqui você revisa o conteúdo através de Flashcards. Responda mentalmente e clique para virar. Classifique sua facilidade para que o algoritmo agende a próxima revisão."
         />
       )}
       <div className="w-full max-w-2xl mx-auto">
@@ -138,8 +138,8 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ showTour = false }) => {
           </div>
         </div>
 
-        <div 
-          className="relative w-full h-80 perspective-1000 mb-8 cursor-pointer" 
+        <div
+          className="relative w-full h-80 perspective-1000 mb-8 cursor-pointer"
           onClick={() => setIsFlipped(!isFlipped)}
         >
           <motion.div
@@ -160,7 +160,7 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ showTour = false }) => {
             </div>
 
             {/* VERSO */}
-            <div 
+            <div
               className="absolute w-full h-full backface-hidden bg-emerald-50 border border-emerald-200 shadow-lg rounded-3xl p-8 flex flex-col justify-center items-center text-center"
               style={{ transform: 'rotateX(180deg)', backfaceVisibility: 'hidden' }}
             >
@@ -171,12 +171,12 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ showTour = false }) => {
 
         <AnimatePresence>
           {isFlipped && (
-            <motion.div 
+            <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               className="grid grid-cols-4 gap-3"
             >
-              <button 
+              <button
                 onClick={(e) => { e.stopPropagation(); handleNext(0); }}
                 className="flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100 transition-colors font-bold"
               >
@@ -184,7 +184,7 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ showTour = false }) => {
                 Errei
                 <span className="text-xs font-normal text-rose-500 mt-1">&lt; 1 min</span>
               </button>
-              <button 
+              <button
                 onClick={(e) => { e.stopPropagation(); handleNext(1); }}
                 className="flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-amber-200 bg-amber-50 text-amber-700 hover:bg-amber-100 transition-colors font-bold"
               >
@@ -192,7 +192,7 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ showTour = false }) => {
                 Difícil
                 <span className="text-xs font-normal text-amber-500 mt-1">1 dia</span>
               </button>
-              <button 
+              <button
                 onClick={(e) => { e.stopPropagation(); handleNext(2); }}
                 className="flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-blue-200 bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors font-bold"
               >
@@ -200,7 +200,7 @@ export const Flashcards: React.FC<FlashcardsProps> = ({ showTour = false }) => {
                 Bom
                 <span className="text-xs font-normal text-blue-500 mt-1">2 dias</span>
               </button>
-              <button 
+              <button
                 onClick={(e) => { e.stopPropagation(); handleNext(3); }}
                 className="flex flex-col items-center justify-center p-4 rounded-2xl border-2 border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition-colors font-bold"
               >

@@ -23,7 +23,7 @@ export const ClinicalCases: React.FC<CasesProps> = ({ showTour = false }) => {
 
   const handleSelect = async (optionKey: string) => {
     if (showFeedback || !currentCase || !currentEtapa) return;
-    
+
     setSelectedOption(optionKey);
     setShowFeedback(true);
 
@@ -31,7 +31,7 @@ export const ClinicalCases: React.FC<CasesProps> = ({ showTour = false }) => {
     const isCorrect = optionKey.toUpperCase() === currentEtapa.resposta_correta.toUpperCase();
     setFeedback({
       correto: isCorrect,
-      explicacao: isCorrect 
+      explicacao: isCorrect
         ? "Parabéns! Resposta correta."
         : `A resposta correta é ${currentEtapa.resposta_correta}. Continue estudando!`
     });
@@ -131,10 +131,10 @@ export const ClinicalCases: React.FC<CasesProps> = ({ showTour = false }) => {
 
   return (
     <>
-      <TourTip 
-        show={showTour} 
-        title="Simulado Vestibular UNIOESTE" 
-        description="Resolva questões no padrão da prova. Leia o contexto com atenção, analise as alternativas e confira a explicação após responder." 
+      <TourTip
+        show={showTour}
+        title="Simulado Vestibular UNIOESTE"
+        description="Resolva questões no padrão da prova. Leia o contexto com atenção, analise as alternativas e confira a explicação após responder."
       />
       <div className="bg-white rounded-3xl shadow-sm border border-zinc-100 overflow-hidden">
         <div className="p-6 bg-zinc-950 text-white relative">
@@ -144,16 +144,16 @@ export const ClinicalCases: React.FC<CasesProps> = ({ showTour = false }) => {
           </h3>
           <h2 className="text-2xl font-bold mb-4">{currentCase.titulo}</h2>
           <p className="text-zinc-300 text-sm leading-relaxed max-w-xl">{currentCase.descricao}</p>
-          
+
           <div className="flex gap-4 mt-6">
             <div className="bg-zinc-900 rounded-lg px-4 py-2 border border-zinc-800 text-xs flex items-center gap-2">
               <BookOpen className="w-4 h-4 text-emerald-400" />
-              <span className="text-zinc-400">Dificuldade:</span> 
+              <span className="text-zinc-400">Dificuldade:</span>
               <span className="font-bold">{currentCase.dificuldade}</span>
             </div>
             <div className="bg-zinc-900 rounded-lg px-4 py-2 border border-zinc-800 text-xs flex items-center gap-2">
               <FileText className="w-4 h-4 text-sky-400" />
-              <span className="text-zinc-400">Progresso:</span> 
+              <span className="text-zinc-400">Progresso:</span>
               <span className="font-bold">{currentCaseIndex + 1} / {cases.length}</span>
             </div>
           </div>
@@ -161,12 +161,12 @@ export const ClinicalCases: React.FC<CasesProps> = ({ showTour = false }) => {
 
         <div className="p-6">
           <h3 className="text-lg font-bold text-zinc-800 mb-6">{currentEtapa.pergunta}</h3>
-          
+
           <div className="space-y-3">
             {Object.entries(alternativas).map(([key, value]) => {
               const isSelected = selectedOption === key;
               const isCorrectOption = key === currentEtapa.resposta_correta;
-              
+
               let btnClass = "border-zinc-200 bg-white hover:border-emerald-500 hover:bg-emerald-50 text-zinc-700";
               if (showFeedback) {
                 if (isCorrectOption) btnClass = "border-emerald-500 bg-emerald-50 text-emerald-900";
@@ -175,7 +175,7 @@ export const ClinicalCases: React.FC<CasesProps> = ({ showTour = false }) => {
               }
 
               return (
-                <button 
+                <button
                   key={key}
                   onClick={() => handleSelect(key)}
                   className={`w-full text-left px-5 py-4 rounded-xl border-2 transition-all font-medium flex items-center justify-between group ${btnClass}`}
@@ -195,27 +195,27 @@ export const ClinicalCases: React.FC<CasesProps> = ({ showTour = false }) => {
 
           <AnimatePresence>
             {showFeedback && feedback && (
-              <motion.div 
+              <motion.div
                 initial={{ opacity: 0, height: 0 }}
                 animate={{ opacity: 1, height: 'auto' }}
                 className="mt-6"
               >
                 <div className={`p-4 rounded-xl text-sm ${
-                  isCorrect 
-                    ? 'bg-emerald-50 text-emerald-900 border border-emerald-200' 
+                  isCorrect
+                    ? 'bg-emerald-50 text-emerald-900 border border-emerald-200'
                     : 'bg-rose-50 text-rose-900 border border-rose-200'
                 }`}>
                   <strong>{isCorrect ? 'Correto! ' : 'Incorreto. '}</strong>
                   {feedback.explicacao}
                 </div>
                 <div className="mt-4 flex justify-end">
-                  <button 
+                  <button
                     onClick={handleNext}
                     className="flex items-center gap-2 bg-zinc-900 text-white px-6 py-3 rounded-xl font-bold hover:bg-zinc-800 transition-colors"
                   >
-                    {currentCaseIndex < cases.length - 1 || currentStep < currentCase.etapas.length - 1 
-                      ? 'Continuar' 
-                      : 'Finalizar'} 
+                    {currentCaseIndex < cases.length - 1 || currentStep < currentCase.etapas.length - 1
+                      ? 'Continuar'
+                      : 'Finalizar'}
                     <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>

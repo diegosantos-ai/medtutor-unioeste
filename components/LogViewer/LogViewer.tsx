@@ -8,33 +8,33 @@ interface LogViewerProps {
 }
 
 const LOG_COLORS: Record<LogLevel, { bg: string; text: string; border: string; icon: React.ReactNode }> = {
-  DEBUG: { 
-    bg: 'bg-slate-100', 
-    text: 'text-slate-700', 
+  DEBUG: {
+    bg: 'bg-slate-100',
+    text: 'text-slate-700',
     border: 'border-slate-200',
     icon: <Bug className="w-4 h-4" />
   },
-  INFO: { 
-    bg: 'bg-blue-50', 
-    text: 'text-blue-700', 
+  INFO: {
+    bg: 'bg-blue-50',
+    text: 'text-blue-700',
     border: 'border-blue-200',
     icon: <Info className="w-4 h-4" />
   },
-  WARN: { 
-    bg: 'bg-amber-50', 
-    text: 'text-amber-700', 
+  WARN: {
+    bg: 'bg-amber-50',
+    text: 'text-amber-700',
     border: 'border-amber-200',
     icon: <AlertTriangle className="w-4 h-4" />
   },
-  ERROR: { 
-    bg: 'bg-rose-50', 
-    text: 'text-rose-700', 
+  ERROR: {
+    bg: 'bg-rose-50',
+    text: 'text-rose-700',
     border: 'border-rose-200',
     icon: <AlertCircle className="w-4 h-4" />
   },
-  FATAL: { 
-    bg: 'bg-red-100', 
-    text: 'text-red-800', 
+  FATAL: {
+    bg: 'bg-red-100',
+    text: 'text-red-800',
     border: 'border-red-300',
     icon: <AlertCircle className="w-4 h-4" />
   },
@@ -76,17 +76,17 @@ export const LogViewer: React.FC<LogViewerProps> = ({ isOpen, onClose }) => {
     setTimeout(() => setCopied(false), 2000);
   };
 
-  const filteredLogs = filter === 'ALL' 
-    ? logs 
+  const filteredLogs = filter === 'ALL'
+    ? logs
     : logs.filter(log => log.level === filter);
 
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp);
-    return date.toLocaleTimeString('pt-BR', { 
-      hour: '2-digit', 
-      minute: '2-digit', 
+    return date.toLocaleTimeString('pt-BR', {
+      hour: '2-digit',
+      minute: '2-digit',
       second: '2-digit',
-      hour12: false 
+      hour12: false
     });
   };
 
@@ -168,7 +168,7 @@ export const LogViewer: React.FC<LogViewerProps> = ({ isOpen, onClose }) => {
         {/* Content */}
         <div className="flex-1 flex overflow-hidden">
           {/* Log List */}
-          <div 
+          <div
             ref={scrollRef}
             className="w-1/2 border-r border-zinc-200 overflow-y-auto"
           >
@@ -242,7 +242,7 @@ export const LogViewer: React.FC<LogViewerProps> = ({ isOpen, onClose }) => {
                   </div>
 
                   <h3 className="font-medium text-zinc-900 mb-2">{selectedLog.message}</h3>
-                  
+
                   <div className="text-sm text-zinc-600 mb-4">
                     <p><strong>Componente:</strong> {selectedLog.component}</p>
                     <p><strong>URL:</strong> {selectedLog.url}</p>

@@ -37,7 +37,7 @@ class ApiClient {
     options: RequestInit = {}
   ): Promise<T> {
     const url = `${this.baseUrl}${endpoint}`;
-    
+
     const headers: Record<string, string> = {
       'Content-Type': 'application/json',
       ...((options.headers as Record<string, string>) || {}),
@@ -54,7 +54,7 @@ class ApiClient {
 
     try {
       const response = await fetch(url, config);
-      
+
       if (response.status === 401) {
         // Token expirado ou inválido
         this.setToken(null);

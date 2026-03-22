@@ -56,9 +56,9 @@ const TutorChat: React.FC<TutorChatProps> = ({ profile }) => {
     try {
       const response = await getTutorResponse(input, profile, messages);
       const duration = Math.round(performance.now() - startTime);
-      
+
       logger.logPerformance('getTutorResponse', duration, { success: true });
-      
+
       const botMsg: Message = {
         role: 'bot',
         text: response.text,
@@ -68,11 +68,11 @@ const TutorChat: React.FC<TutorChatProps> = ({ profile }) => {
       setMessages(prev => [...prev, botMsg]);
     } catch (error) {
       const duration = Math.round(performance.now() - startTime);
-      logger.error('Falha no getTutorResponse', error instanceof Error ? error : undefined, { 
+      logger.error('Falha no getTutorResponse', error instanceof Error ? error : undefined, {
         duration,
         messageInput: input.substring(0, 50)
       });
-      
+
       setMessages(prev => [...prev, { role: 'bot', text: "Desculpe, tive um erro ao processar. Tente novamente.", timestamp: Date.now() }]);
     } finally {
       setLoading(false);

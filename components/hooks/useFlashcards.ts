@@ -21,21 +21,21 @@ export function useFlashcards(dueOnly: boolean = true): UseFlashcardsReturn {
     const startTime = performance.now();
     setIsLoading(true);
     setError(null);
-    
+
     logger.info('Iniciando carregamento de flashcards', { dueOnly });
-    
+
     try {
       // Simula delay de API
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       // Usa dados mockados
       const data = MOCK_FLASHCARDS;
       setFlashcards(data);
-      
+
       const duration = Math.round(performance.now() - startTime);
-      logger.logPerformance('carregar flashcards', duration, { 
+      logger.logPerformance('carregar flashcards', duration, {
         count: data.length,
-        dueOnly 
+        dueOnly
       });
     } catch (err) {
       const errorMsg = err instanceof Error ? err.message : 'Erro ao carregar flashcards';
@@ -52,18 +52,18 @@ export function useFlashcards(dueOnly: boolean = true): UseFlashcardsReturn {
 
   const reviewCard = async (cardId: number, quality: number) => {
     logger.info('Revisando flashcard', { cardId, quality });
-    
+
     try {
       // Simula atualização local
       await new Promise(resolve => setTimeout(resolve, 200));
-      
+
       // Remove o card revisado da lista (simula sistema SRS)
       setFlashcards(prev => {
         const newList = prev.filter(card => card.id !== cardId);
-        logger.info('Flashcard revisado e removido da fila', { 
-          cardId, 
-          quality, 
-          remaining: newList.length 
+        logger.info('Flashcard revisado e removido da fila', {
+          cardId,
+          quality,
+          remaining: newList.length
         });
         return newList;
       });

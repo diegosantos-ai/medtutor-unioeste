@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await authApi.login(credentials);
       apiClient.setToken(response.access_token);
       setUser(response.user);
-      
+
       // Salvar sessão no localStorage para compatibilidade
       localStorage.setItem('medtutor_session', JSON.stringify({
         matricula: `MT-${response.user.id.toString().padStart(4, '0')}`,
@@ -68,7 +68,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const response = await authApi.register(data);
       apiClient.setToken(response.access_token);
       setUser(response.user);
-      
+
       localStorage.setItem('medtutor_session', JSON.stringify({
         matricula: `MT-${response.user.id.toString().padStart(4, '0')}`,
         userId: response.user.id,
@@ -87,10 +87,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const updateUser = async (data: Partial<User>) => {
     if (!user) return;
-    
+
     const updated = await authApi.updateMe(data);
     setUser(updated);
-    
+
     // Atualizar sessão no localStorage
     const session = JSON.parse(localStorage.getItem('medtutor_session') || '{}');
     session.name = updated.name;

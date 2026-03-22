@@ -19,17 +19,17 @@ export function useCases(): UseCasesReturn {
     const startTime = performance.now();
     setIsLoading(true);
     setError(null);
-    
+
     logger.info('Iniciando carregamento de casos clínicos');
-    
+
     try {
       // Simula delay de API
       await new Promise(resolve => setTimeout(resolve, 700));
-      
+
       // Usa dados mockados
       const data = MOCK_CLINICAL_CASES;
       setCases(data);
-      
+
       const duration = Math.round(performance.now() - startTime);
       logger.logPerformance('carregar casos', duration, { count: data.length });
     } catch (err) {

@@ -45,7 +45,7 @@ export const StudyPlanConfig: React.FC<StudyPlanConfigProps> = ({ onSave }) => {
         <h2 className="text-3xl font-bold mb-2 relative z-10 text-balance">Vestibular UNIOESTE - Medicina</h2>
         <p className="text-zinc-400 relative z-10">Monte seu perfil e configure seu plano de estudos personalizado.</p>
       </div>
-      
+
       <div className="p-8">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
           <div>
@@ -53,7 +53,7 @@ export const StudyPlanConfig: React.FC<StudyPlanConfigProps> = ({ onSave }) => {
               <UserCircle className="w-5 h-5 text-emerald-500" />
               Seu Nome Completo
             </label>
-            <input 
+            <input
               type="text"
               placeholder="Seu nome aqui"
               value={name}
@@ -66,7 +66,7 @@ export const StudyPlanConfig: React.FC<StudyPlanConfigProps> = ({ onSave }) => {
               <GraduationCap className="w-5 h-5 text-emerald-500" />
               Situacao Atual
             </label>
-            <select 
+            <select
               value={profileType}
               onChange={e => setProfileType(e.target.value)}
               className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500 text-zinc-800 font-medium"

@@ -13,9 +13,9 @@ interface DashboardProps {
   totalDays?: number;
 }
 
-export const PerformanceDashboard: React.FC<DashboardProps> = ({ 
-  showTour = false, 
-  currentDay = 1, 
+export const PerformanceDashboard: React.FC<DashboardProps> = ({
+  showTour = false,
+  currentDay = 1,
   totalDays = 30,
 }) => {
   const { stats, isLoading, error } = useStats();
@@ -65,12 +65,12 @@ export const PerformanceDashboard: React.FC<DashboardProps> = ({
 
   return (
     <div className="space-y-6">
-      <TourTip 
-        show={showTour} 
-        title="Dashboard de Desempenho" 
+      <TourTip
+        show={showTour}
+        title="Dashboard de Desempenho"
         description="Acompanhe sua evolução com dados reais do seu progresso."
       />
-      
+
       {/* Top Stats */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
@@ -85,7 +85,7 @@ export const PerformanceDashboard: React.FC<DashboardProps> = ({
             {correctAnswers}/{totalQuestions} acertos
           </p>
         </div>
-        
+
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-zinc-100">
           <div className="flex items-center gap-3 mb-2">
             <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center text-blue-600">

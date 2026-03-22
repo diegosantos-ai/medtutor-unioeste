@@ -2,17 +2,17 @@ version: "3.8"
 
 services:
   medtutor-api:
-    build: 
+    build:
       context: ./backend
       dockerfile: Dockerfile
-    
+
     container_name: medtutor-api
-    
+
     # Selecting an available port based on PORTS.md
     # Used 8096 since 8090-8095 are taken by Nexo services
     ports:
-      - "8096:8000" 
-      
+      - "8096:8000"
+
     environment:
       # Connecting to the shared PostgreSQL vector database from Nexo infrastructure
       - DATABASE_URL=postgresql://postgres:postgres123@postgres-vector:5432/medtutor_db

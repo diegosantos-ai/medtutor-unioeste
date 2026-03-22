@@ -1,7 +1,7 @@
 """Initial Schema
 
 Revision ID: 143a35ac668d
-Revises: 
+Revises:
 Create Date: 2026-02-24 14:40:07.060350
 
 """
