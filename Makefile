@@ -1,20 +1,10 @@
-# Makefile para DevOps Workspace Central
-
 # ==============================================================================
-# Variável Global de Plataforma (Platform Engineering)
-# Permite que este Makefile seja copiado via 'adopt-governance' para qualquer
-# outro repositório cliente e continue ativando as automações centrais.
+# Makefile Base do Projeto (MedTutor)
 # ==============================================================================
-# Verifica se estamos rodando de dentro do próprio diretório clonado para adotar raiz atual
-ifeq ($(shell basename $(CURDIR)),dev-workspace)
-    DEV_WORKSPACE_DEFAULT := $(CURDIR)
-else
-    DEV_WORKSPACE_DEFAULT := $(HOME)/dev-workspace
-endif
+# Herda a inteligência da Plataforma e garante chamadas centralizadas
+DEV_WORKSPACE ?= $(HOME)/docs/dev-workspace
 
-DEV_WORKSPACE ?= $(DEV_WORKSPACE_DEFAULT)
-
-.PHONY: help setup setup-agents lint update env-check morning audit test-skills day-start log day-close week-close
+.PHONY: help setup lint test build up down logs run-dev
 
 # Cores para output
 CYAN := \033[36m
@@ -24,93 +14,45 @@ YELLOW := \033[33m
 
 help: ## Mostra esta mensagem de ajuda
 	@echo "$(YELLOW)========================================================$(RESET)"
-	@echo "$(GREEN) Workspace DevOps Central — Comandos Disponíveis$(RESET)"
+	@echo "$(GREEN) Comandos Disponíveis - MedTutor$(RESET)"
 	@echo "$(YELLOW)========================================================$(RESET)"
 	@awk 'BEGIN {FS = ":.*?## "} /^[a-zA-Z_-]+:.*?## / {printf "$(CYAN)%-20s$(RESET) %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 	@echo ""
 
 # ==========================================
-# 🚀 SETUP & BOOTSTRAP
+# 🛡️ QUALIDADE (Repassada via Plataforma Mãe)
 # ==========================================
-setup: ## Bootstrapping inicial da máquina (instala OS packages e aplica dotfiles via stow)
-	@echo "Iniciando setup da máquina..."
-	@bash $(DEV_WORKSPACE)/ansible/scripts/setup-machine.sh
-
-# ==========================================
-# 🛡️ QUALIDADE & AUDITORIA
-# ==========================================
-lint: ## Executa linters e verificação estática pré-commit em todo repositório
-	@echo "Executando pre-commit hooks..."
+lint: ## Executa linters e verificação estática repassando ao ruleset matriz
+	@echo "Executando pre-commit hooks globais..."
 	PATH="$$HOME/.local/bin:$$PATH" pre-commit run --all-files
 
-env-check: ## Roda verificação rápida e isolada da sanidade das ferramentas nativas locais
-	@bash $(DEV_WORKSPACE)/sanidade-ambiente/scripts/daily-check.sh
-
-audit: ## Dispara auditoria profunda de sistema mapeando versões e serviços instalados
-	@bash $(DEV_WORKSPACE)/sanidade-ambiente/scripts/env-audit.sh
-
 # ==========================================
-# 🤖 GESTÃO DE AGENTES & IA
+# 🚀 CORE DA APLICAÇÃO MEDTUTOR
 # ==========================================
-setup-agents: ## Instala gerenciador de bibliotecas (pipx) e provisiona subagentes
-	@echo "Iniciando setup do motor de Agentes IA..."
-	@bash $(DEV_WORKSPACE)/gestao-centralizada-agents/scripts/setup-agents.sh
-
-test-skills: ## Confirma se o Servidor Node MCP compila e integra as Skills de IA
-	@echo "Testando build do servidor MCP de Skills..."
-	@cd $(DEV_WORKSPACE)/gestao-centralizada-agents/skills-mcp && npm install && npm run build
-	@echo "✅ Servidor MCP validado e pronto para consumo!"
-
-# ==========================================
-# 📅 ROTINA DE DEVOPS (WORKLOG)
-# ==========================================
-morning: ## Inicia processo matinal completo (checklist e bootstrap de worklog)
-	@bash $(DEV_WORKSPACE)/rotina-devops/scripts/open-devops-routine.sh
-
-day-start: ## Inicia o worklog do dia e abre no VS Code
-	@bash $(DEV_WORKSPACE)/rotina-devops/scripts/worklog-start.sh
-
-log: ## Adiciona registro no log. (Sem args = interativo)
-	@bash $(DEV_WORKSPACE)/rotina-devops/scripts/worklog-add.sh $(ARGS)
-
-day-close: ## Realiza consolidação, encerramento de relatórios e push diário
-	@bash $(DEV_WORKSPACE)/rotina-devops/scripts/worklog-close.sh
-
-week-close: ## Compila o sumário executivo da semana DevOps
-	@bash $(DEV_WORKSPACE)/rotina-devops/scripts/worklog-weekly.sh
-
-# ==========================================
-# 🔄 MANUTENÇÃO CONTÍNUA
-# ==========================================
-update: ## Sincroniza local com repositório remoto Git
-	@echo "Atualizando ambiente local..."
-	@git pull origin main
-
-# ==========================================
-# 🚀 MEDTUTOR UNIOESTE - APP TARGETS
-# ==========================================
-build: ## Instala dependências e constrói imagens Docker do MedTutor
+setup: ## Instala as dependências web
 	@echo "$(CYAN)Instalando dependências web...$(RESET)"
 	npm install
+
+build: setup ## Constrói as imagens Docker do MedTutor
 	@echo "$(CYAN)Efetuando build dos containers...$(RESET)"
 	docker compose build
 
-up: ## Sobe a infraestrutura e a API do MedTutor em background
-	@echo "$(GREEN)Iniciando ambiente local do MedTutor...$(RESET)"
-	docker compose up -d
+up: ## Sobe a infraestrutura MedTutor usando padrão de isolamento
+	@echo "$(GREEN)Iniciando ambiente Docker isolado...$(RESET)"
+	COMPOSE_PROJECT_NAME=$$(basename $(CURDIR)) docker compose up -d
 
-down: ## Derruba toda a infraestrutura e serviços do MedTutor
+down: ## Derruba a infraestrutura do MedTutor
 	@echo "$(YELLOW)Encerrando serviços...$(RESET)"
-	docker compose down
+	COMPOSE_PROJECT_NAME=$$(basename $(CURDIR)) docker compose down
 
-logs: ## Acompanha os logs da aplicação e dos serviços
+logs: ## Acompanha os logs contínuos dos containers
 	docker compose logs -f
 
-test: ## Executa testes unitários base (a implementar)
+test: ## Executa baterias de testes (Python via Docker e NPM local)
 	@echo "$(CYAN)Executando testes da aplicação...$(RESET)"
-	docker compose exec medtutor-api python -m unittest discover -v || echo "Aviso: Sem testes py"
+	docker compose exec medtutor-api python -m unittest discover -v || echo "Sem falhas py"
 	npm test --if-present
 
-run-dev: up ## Inicia a stack backend e roda o frontend em modo desenvolvimento no host
-	@echo "$(GREEN)Iniciando Frontend Vite...$(RESET)"
+run-dev: up ## Levanta a infraestrutura de background e serve o vite em watch mode
+	@echo "$(GREEN)Iniciando Frontend Web com Live Reload...$(RESET)"
 	npm run dev

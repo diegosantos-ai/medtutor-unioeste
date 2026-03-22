@@ -16,3 +16,5 @@ langchain-google-genai
 chromadb
 pypdf
 sentence-transformers
+python-json-logger>=2.0.7
+prometheus-fastapi-instrumentator>=6.1.1

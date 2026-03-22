@@ -1,61 +1,9 @@
-version: "3.8"
+import re
 
-services:
-  medtutor-api:
-    build:
-      context: ./backend
-      dockerfile: Dockerfile
-    container_name: medtutor-api
-    ports:
-      - "${API_PORT:-8096}:8000"
-    environment:
-      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@medtutor-postgres:5432/medtutor_db}
-      - REDIS_URL=${REDIS_URL:-redis://medtutor-redis:6379/0}
-      - CHROMA_URL=${CHROMA_URL:-http://medtutor-chroma:8000}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-    depends_on:
-      - postgres
-      - redis
-      - chromadb
-    networks:
-      - medtutor-net
+with open('docker-compose.yml', 'r') as f:
+    content = f.read()
 
-  postgres:
-    image: postgres:15-alpine
-    container_name: medtutor-postgres
-    environment:
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - POSTGRES_DB=${POSTGRES_DB:-medtutor_db}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-    networks:
-      - medtutor-net
-
-  redis:
-    image: redis:7-alpine
-    container_name: medtutor-redis
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - medtutor-net
-
-  chromadb:
-    image: chromadb/chroma:latest
-    container_name: medtutor-chroma
-    environment:
-      - IS_PERSISTENT=TRUE
-    ports:
-      - "${CHROMA_PORT:-8000}:8000"
-    volumes:
-      - chroma_data:/chroma/chroma
-    networks:
-      - medtutor-net
-
+services_block = """
   prometheus:
     image: prom/prometheus:v2.44.0
     container_name: medtutor-prometheus
@@ -111,14 +59,42 @@ services:
     networks:
       - medtutor-net
 
-networks:
-  medtutor-net:
-    driver: bridge
+  node-exporter:
+    image: prom/node-exporter:v1.5.0
+    container_name: medtutor-node-exporter
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.rootfs=/rootfs'
+      - '--path.sysfs=/host/sys'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    expose:
+      - 9100
+    networks:
+      - medtutor-net
 
-volumes:
-  postgres_data:
-  redis_data:
-  chroma_data:
-  prometheus_data:
-  loki_data:
-  grafana_data:
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.47.0
+    container_name: medtutor-cadvisor
+    privileged: true
+    devices:
+      - /dev/kmsg:/dev/kmsg
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    expose:
+      - 8080
+    networks:
+      - medtutor-net
+"""
+
+content = content.replace("networks:\n  medtutor-net:", services_block + "\nnetworks:\n  medtutor-net:")
+
+with open('docker-compose.yml', 'w') as f:
+    f.write(content)
