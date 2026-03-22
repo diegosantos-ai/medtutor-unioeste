@@ -1,5 +1,9 @@
-import { UserProfile, WeeklyPlan, QuizItem, ContentResource, DifficultyLevel, Message } from "./types";
+import re
 
+with open('geminiService.ts', 'r') as f:
+    content = f.read()
+
+retry_logic = """
 // Helper to implement exponential backoff
 const sleep = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -56,67 +60,14 @@ async function callBackendApi(action: string, payload: any) {
     throw error;
   }
 }
+"""
 
-export const getTutorResponse = async (
-  query: string,
-  profile: UserProfile,
-  history: Message[]
-): Promise<{ text: string; sources?: any[] }> => {
-  try {
-    const data = await callBackendApi('chat', { query, profile, history });
-    return { text: data.text, sources: data.sources };
-  } catch (error) {
-    console.error('Tutor response error:', error);
-    throw error;
-  }
-};
+# Replace the existing callBackendApi
+content = re.sub(
+    r'// Helper for backend API routing[\s\S]*?return response\.json\(\);\n}',
+    retry_logic.strip(),
+    content
+)
 
-export const generateStudyPlan = async (profile: UserProfile): Promise<WeeklyPlan> => {
-  try {
-    const data = await callBackendApi('plan', { profile });
-    return JSON.parse(data.text);
-  } catch (error) {
-    console.error('Study plan error:', error);
-    throw error;
-  }
-};
-
-export const generateLargeQuizFromContext = async (
-  context: string,
-  subject: string
-): Promise<QuizItem[]> => {
-  try {
-    const data = await callBackendApi('quizFromContext', { context, subject });
-    return JSON.parse(data.text);
-  } catch (error) {
-    console.error('Quiz generation error:', error);
-    throw error;
-  }
-};
-
-export const generateQuiz = async (
-  subject: string,
-  topic: string,
-  level: DifficultyLevel = 'Intermediário'
-): Promise<QuizItem[]> => {
-  try {
-    const data = await callBackendApi('quiz', { subject, topic, level });
-    return JSON.parse(data.text);
-  } catch (error) {
-    console.error('Quiz generation error:', error);
-    throw error;
-  }
-};
-
-export const generateSummary = async (
-  subject: string,
-  topic: string
-): Promise<ContentResource> => {
-  try {
-    const data = await callBackendApi('summary', { subject, topic });
-    return JSON.parse(data.text);
-  } catch (error) {
-    console.error('Summary generation error:', error);
-    throw error;
-  }
-};
+with open('geminiService.ts', 'w') as f:
+    f.write(content)

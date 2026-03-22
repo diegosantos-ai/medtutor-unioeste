@@ -2,6 +2,18 @@ import os
 import google.generativeai as genai
 import json
 import random
+import logging
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from google.api_core.exceptions import GoogleAPIError
+
+logger = logging.getLogger("ai_service")
+
+import logging
+from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+from google.api_core.exceptions import GoogleAPIError
+
+logger = logging.getLogger("ai_service")
+
 from app.video_database import get_recommended_videos
 from app.rag_service import rag_db
 
@@ -51,7 +63,16 @@ def generate_study_plan(profile: dict):
       ]
     }}
     """
-    response = model.generate_content(prompt)
+
+    try:
+        @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10), retry=retry_if_exception_type(GoogleAPIError), reraise=True)
+        def _gen():
+            return model.generate_content(prompt)
+        response = _gen()
+    except Exception as e:
+        logger.error(f"Falha critica no Gemini (generation): {e}")
+        raise RuntimeError("Serviço de IA indisponível no momento.") from e
+
     try:
         # Strip markdown json block if present
         text = response.text.replace("```json", "").replace("```", "").strip()
@@ -96,7 +117,16 @@ Regras de conduta rigorosas:
 Perfil do aluno: {json.dumps(profile)}.
 Pergunta atual do estudante: {query}
 """
-    response = chat.send_message(context_prompt)
+
+    try:
+        @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10), retry=retry_if_exception_type(GoogleAPIError), reraise=True)
+        def _send():
+            return chat.send_message(context_prompt)
+        response = _send()
+    except Exception as e:
+        logger.error(f"Falha critica no Gemini (tutor): {e}")
+        raise RuntimeError("Serviço de IA indisponível no momento. Tente novamente mais tarde.") from e
+
 
     formatted_sources = [
         {
@@ -126,7 +156,16 @@ def generate_summary(subject: str, topic: str):
       ]
     }}
     """
-    response = model.generate_content(prompt)
+
+    try:
+        @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10), retry=retry_if_exception_type(GoogleAPIError), reraise=True)
+        def _gen():
+            return model.generate_content(prompt)
+        response = _gen()
+    except Exception as e:
+        logger.error(f"Falha critica no Gemini (generation): {e}")
+        raise RuntimeError("Serviço de IA indisponível no momento.") from e
+
     try:
         text = response.text.replace("```json", "").replace("```", "").strip()
         return json.loads(text)

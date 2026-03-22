@@ -44,6 +44,18 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+
+from fastapi.responses import JSONResponse
+from fastapi import Request
+
+@app.exception_handler(RuntimeError)
+async def runtime_exception_handler(request: Request, exc: RuntimeError):
+    logger.error(f"RuntimeError global capturado: {str(exc)}")
+    return JSONResponse(
+        status_code=503,
+        content={"error": str(exc)},
+    )
+
 app.include_router(router)
 
 @app.get("/api/health")
