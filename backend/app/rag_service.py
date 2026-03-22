@@ -1,5 +1,6 @@
 import os
 import glob
+import chromadb
 from typing import List, Dict, Any
 from dotenv import load_dotenv
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -8,6 +9,7 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import Chroma
 from app.config import (
     CHROMA_DIR,
+    CHROMA_URL,
     CHROMA_COLLECTION_NAME,
     CHUNK_SIZE,
     CHUNK_OVERLAP,
@@ -29,13 +31,21 @@ class RAGService:
         self._load_vectorstore()
 
     def _load_vectorstore(self):
-        if os.path.exists(CHROMA_DIR) and os.listdir(CHROMA_DIR):
+        if True:
             try:
-                self.vectorstore = Chroma(
-                    persist_directory=CHROMA_DIR,
-                    embedding_function=self.embeddings,
-                    collection_name=CHROMA_COLLECTION_NAME,
-                )
+                if CHROMA_URL:
+                    client = chromadb.HttpClient(host=CHROMA_URL.split("//")[-1].split(":")[0], port=int(CHROMA_URL.split(":")[-1]))
+                    self.vectorstore = Chroma(
+                        client=client,
+                        embedding_function=self.embeddings,
+                        collection_name=CHROMA_COLLECTION_NAME,
+                    )
+                else:
+                    self.vectorstore = Chroma(
+                        persist_directory=CHROMA_DIR,
+                        embedding_function=self.embeddings,
+                        collection_name=CHROMA_COLLECTION_NAME,
+                    )
                 print(
                     f"[RAG] Vectorstore loaded with {self.vectorstore._collection.count()} documents"
                 )
@@ -44,11 +54,19 @@ class RAGService:
                 self.vectorstore = None
 
     def _create_vectorstore(self):
-        self.vectorstore = Chroma(
-            persist_directory=CHROMA_DIR,
-            embedding_function=self.embeddings,
-            collection_name=CHROMA_COLLECTION_NAME,
-        )
+        if CHROMA_URL:
+            client = chromadb.HttpClient(host=CHROMA_URL.split("//")[-1].split(":")[0], port=int(CHROMA_URL.split(":")[-1]))
+            self.vectorstore = Chroma(
+                client=client,
+                embedding_function=self.embeddings,
+                collection_name=CHROMA_COLLECTION_NAME,
+            )
+        else:
+            self.vectorstore = Chroma(
+                persist_directory=CHROMA_DIR,
+                embedding_function=self.embeddings,
+                collection_name=CHROMA_COLLECTION_NAME,
+            )
 
     def ingest_document(
         self, file_path: str, context_metadata: dict = None

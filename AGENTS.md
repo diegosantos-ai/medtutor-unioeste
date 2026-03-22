@@ -10,4 +10,11 @@
 3. **Qualidade Impeditiva (Pre-commit):** Seus artefatos (seja Bash, Python, Terraform ou YAML) sofrem triagem estática local antes do push. Garanta espaçamentos POSIX (linha vazia ao final de arquivos) e garanta que scripts Bash passem silenciosos sob a avaliação do Linter `shellcheck`.
 4. **Idempotência Arquitetural:** Qualquer script, CI/CD ou módulo de infraestrutura fornecido por você deve prever execuções seguras n-vezes (Se eu rodar 100 vezes o seu código de provisionamento, ele não deve falhar por conflito ou criar entidades em duplicidade).
 
+## Gerenciamento de Secrets e Variáveis Globais
+
+Siga o princípio do "Zsh Pass-through" (ADR-0006):
+1. NUNCA solicite que o usuário crie um copiando e colando chaves de API críticas num arquivo `.env` estático local no projeto. Assuma que o ambiente Host (bash/zsh) do usuário JÁ exporta tokens como `GEMINI_API_KEY`, `OPENAI_API_KEY` ou `AWS_ACCESS_KEY_ID`.
+2. Em scripts Python, consuma utilizando fallback defensivo `os.environ.get("CHAVE")`.
+3. Em `docker-compose.yml`, referencie a propagação limpa, chamando a variável do shell de volta para o contêiner: `- GEMINI_API_KEY=${GEMINI_API_KEY}` sem prefixar ou fornecer valor direto de fallback.
+
 **Agente, processe todos os prompts deste diretório sob as restrições arquiteturais supracitadas.**

@@ -5,24 +5,62 @@ services:
     build:
       context: ./backend
       dockerfile: Dockerfile
-
     container_name: medtutor-api
-
-    # Selecting an available port based on PORTS.md
-    # Used 8096 since 8090-8095 are taken by Nexo services
     ports:
-      - "8096:8000"
-
+      - "${API_PORT:-8096}:8000"
     environment:
-      # Connecting to the shared PostgreSQL vector database from Nexo infrastructure
-      - DATABASE_URL=postgresql://postgres:postgres123@postgres-vector:5432/medtutor_db
-      - REDIS_URL=redis://redis:6379
-      - CHROMA_URL=http://chromadb:8000
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@medtutor-postgres:5432/medtutor_db}
+      - REDIS_URL=${REDIS_URL:-redis://medtutor-redis:6379/0}
+      - CHROMA_URL=${CHROMA_URL:-http://medtutor-chroma:8000}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}   # O container puxa a chave que ja esta viva na sua maquina (Zsh Pass-through)
+    depends_on:
+      - postgres
+      - redis
+      - chromadb
     networks:
-      - nexo-infra-network
+      - medtutor-net
+
+  postgres:
+    image: postgres:15-alpine
+    container_name: medtutor-postgres
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-postgres}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+      - POSTGRES_DB=${POSTGRES_DB:-medtutor_db}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - medtutor-net
+
+  redis:
+    image: redis:7-alpine
+    container_name: medtutor-redis
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - medtutor-net
+
+  chromadb:
+    image: chromadb/chroma:latest
+    container_name: medtutor-chroma
+    environment:
+      - IS_PERSISTENT=TRUE
+    ports:
+      - "${CHROMA_PORT:-8000}:8000"
+    volumes:
+      - chroma_data:/chroma/chroma
+    networks:
+      - medtutor-net
 
 networks:
-  nexo-infra-network:
-    external: true
-    name: infra_nexo-network
+  medtutor-net:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  redis_data:
+  chroma_data:
