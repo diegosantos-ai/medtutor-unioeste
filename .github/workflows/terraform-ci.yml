@@ -16,7 +16,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: .
+        working-directory: ./aws/envs/dev
 
     steps:
       - name: Checkout do código
@@ -43,7 +43,7 @@ jobs:
 
     defaults:
       run:
-        working-directory: .
+        working-directory: ./aws/envs/dev
 
     env:
       AWS_REGION: ${{ vars.TF_VAR_aws_region }}
