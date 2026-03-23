@@ -1,113 +1,82 @@
-version: "3.8"
-
 services:
-  medtutor-api:
+  backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: medtutor-api
-    ports:
-      - "${API_PORT:-8096}:8000"
+    container_name: medtutor-backend
+    restart: unless-stopped
     environment:
-      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@medtutor-postgres:5432/medtutor_db}
-      - REDIS_URL=${REDIS_URL:-redis://medtutor-redis:6379/0}
-      - CHROMA_URL=${CHROMA_URL:-http://medtutor-chroma:8000}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      PORT: ${BACKEND_INTERNAL_PORT:-8000}
+      DB_WAIT_TIMEOUT: ${DB_WAIT_TIMEOUT:-60}
+      DATABASE_URL: ${DATABASE_URL:-postgresql://postgres:postgres@postgres:5432/medtutor_db}
+      CHROMA_URL: ${CHROMA_URL:-http://chromadb:8000}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+    ports:
+      - "${BACKEND_PORT:-8002}:${BACKEND_INTERNAL_PORT:-8000}"
     depends_on:
-      - postgres
-      - redis
-      - chromadb
+      postgres:
+        condition: service_healthy
+      chromadb:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:${BACKEND_INTERNAL_PORT:-8000}/api/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks:
+      - medtutor-net
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        VITE_API_URL: ${VITE_API_URL:-/api}
+    container_name: medtutor-frontend
+    restart: unless-stopped
+    ports:
+      - "${FRONTEND_PORT:-3000}:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     networks:
       - medtutor-net
 
   postgres:
-    image: postgres:15-alpine
+    image: postgres:16-alpine
     container_name: medtutor-postgres
+    restart: unless-stopped
     environment:
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - POSTGRES_DB=${POSTGRES_DB:-medtutor_db}
-    ports:
-      - "${POSTGRES_PORT:-5432}:5432"
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-medtutor_db}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-medtutor_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - medtutor-net
 
-  redis:
-    image: redis:7-alpine
-    container_name: medtutor-redis
-    ports:
-      - "${REDIS_PORT:-6379}:6379"
-    volumes:
-      - redis_data:/data
-    networks:
-      - medtutor-net
-
   chromadb:
-    image: chromadb/chroma:latest
-    container_name: medtutor-chroma
+    image: chromadb/chroma:0.5.5
+    container_name: medtutor-chromadb
+    restart: unless-stopped
     environment:
-      - IS_PERSISTENT=TRUE
-    ports:
-      - "${CHROMA_PORT:-8000}:8000"
+      IS_PERSISTENT: ${CHROMA_IS_PERSISTENT:-TRUE}
     volumes:
       - chroma_data:/chroma/chroma
-    networks:
-      - medtutor-net
-
-  prometheus:
-    image: prom/prometheus:v2.44.0
-    container_name: medtutor-prometheus
-    volumes:
-      - ./infra/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-    ports:
-      - "9090:9090"
-    networks:
-      - medtutor-net
-
-  loki:
-    image: grafana/loki:2.8.2
-    container_name: medtutor-loki
-    volumes:
-      - ./infra/observability/loki/local-config.yaml:/etc/loki/local-config.yaml
-      - loki_data:/tmp/loki
-    command: -config.file=/etc/loki/local-config.yaml
-    ports:
-      - "3100:3100"
-    networks:
-      - medtutor-net
-
-  promtail:
-    image: grafana/promtail:2.8.2
-    container_name: medtutor-promtail
-    volumes:
-      - /var/log:/var/log
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./infra/observability/promtail/promtail-config.yaml:/etc/promtail/config.yml
-    command: -config.file=/etc/promtail/config.yml
-    networks:
-      - medtutor-net
-
-  grafana:
-    image: grafana/grafana:9.5.2
-    container_name: medtutor-grafana
-    environment:
-      - GF_SECURITY_ADMIN_USER=admin
-      - GF_SECURITY_ADMIN_PASSWORD=admin
-    volumes:
-      - ./infra/observability/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
-      - ./infra/observability/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
-      - grafana_data:/var/lib/grafana
-    ports:
-      - "3000:3000"
-    depends_on:
-      - prometheus
-      - loki
     networks:
       - medtutor-net
 
@@ -117,8 +86,4 @@ networks:
 
 volumes:
   postgres_data:
-  redis_data:
   chroma_data:
-  prometheus_data:
-  loki_data:
-  grafana_data:

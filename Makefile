@@ -2,9 +2,8 @@
 # Makefile Base do Projeto (MedTutor)
 # ==============================================================================
 # Herda a inteligência da Plataforma e garante chamadas centralizadas
-DEV_WORKSPACE ?= $(HOME)/docs/dev-workspace
-
-.PHONY: help setup lint test build up down logs run-dev
+DEV_WORKSPACE ?= $(HOME)/dev-workspace
+.PHONY: help setup lint test build up down logs run-dev ports
 
 # Cores para output
 CYAN := \033[36m
@@ -41,6 +40,14 @@ up: ## Sobe a infraestrutura MedTutor usando padrão de isolamento
 	@echo "$(GREEN)Iniciando ambiente Docker isolado...$(RESET)"
 	COMPOSE_PROJECT_NAME=$$(basename $(CURDIR)) docker compose up -d
 
+ports: ## Mostra as portas locais alocadas e a política do projeto
+	@echo "$(CYAN)Portas do projeto MedTutor$(RESET)"
+	@echo "Backend  -> http://localhost:$${BACKEND_PORT:-8002}"
+	@echo "Frontend -> http://localhost:$${FRONTEND_PORT:-3000}"
+	@echo "Postgres e ChromaDB ficam apenas na rede interna do compose."
+	@echo "$(YELLOW)Portas reservadas pelo infra-core: 80, 8080, 5432, 6379, 8000, 5000$(RESET)"
+	@ss -ltn | awk 'NR==1 || $$4 ~ /:(3000|8002)$$/'
+
 down: ## Derruba a infraestrutura do MedTutor
 	@echo "$(YELLOW)Encerrando serviços...$(RESET)"
 	COMPOSE_PROJECT_NAME=$$(basename $(CURDIR)) docker compose down
@@ -71,3 +78,15 @@ up-prod: ## Sobe a infraestrutura usando docker-compose.prod.yml (Nginx e Sem Vi
 deploy-aws: ## Orquestra a infraestrutura AWS via Terraform (aws/envs/dev)
 	@echo "$(CYAN)Inicializando e aplicando Terraform na AWS...$(RESET)"
 	cd aws/envs/dev && terraform init && terraform apply -auto-approve
+
+# ==========================================
+# 🤖 GESTÃO DE AGENTES & IA
+# ==========================================
+setup-agents: ## Instala gerenciador de bibliotecas (pipx) e provisiona subagentes
+	@echo "Iniciando setup do motor de Agentes IA..."
+	@bash $(DEV_WORKSPACE)/gestao-centralizada-agents/scripts/setup-agents.sh
+
+test-skills: ## Confirma se o Servidor Node MCP compila e integra as Skills de IA
+	@echo "Testando build do servidor MCP de Skills..."
+	@cd $(DEV_WORKSPACE)/gestao-centralizada-agents/skills-mcp && npm install && npm run build
+	@echo "✅ Servidor MCP validado e pronto para consumo!"

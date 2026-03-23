@@ -23,14 +23,25 @@ os.makedirs(CHROMA_DIR, exist_ok=True)
 
 class RAGService:
     def __init__(self):
-        self.embeddings = GoogleGenerativeAIEmbeddings(
-            model="gemini-embedding-001",
-            google_api_key=os.environ.get("GEMINI_API_KEY"),
-        )
+        self.embeddings = None
         self.vectorstore = None
+        self._init_embeddings()
         self._load_vectorstore()
 
+    def _init_embeddings(self):
+        api_key = os.environ.get("GEMINI_API_KEY")
+        if not api_key:
+            print("[RAG] GEMINI_API_KEY not configured. RAG embeddings disabled.")
+            return
+
+        self.embeddings = GoogleGenerativeAIEmbeddings(
+            model="gemini-embedding-001",
+            google_api_key=api_key,
+        )
+
     def _load_vectorstore(self):
+        if self.embeddings is None:
+            return
         if True:
             try:
                 if CHROMA_URL:
@@ -54,6 +65,8 @@ class RAGService:
                 self.vectorstore = None
 
     def _create_vectorstore(self):
+        if self.embeddings is None:
+            raise RuntimeError("RAG embeddings unavailable. Configure GEMINI_API_KEY.")
         if CHROMA_URL:
             client = chromadb.HttpClient(host=CHROMA_URL.split("//")[-1].split(":")[0], port=int(CHROMA_URL.split(":")[-1]))
             self.vectorstore = Chroma(
@@ -71,6 +84,9 @@ class RAGService:
     def ingest_document(
         self, file_path: str, context_metadata: dict = None
     ) -> Dict[str, Any]:
+        if self.embeddings is None:
+            return {"success": False, "error": "GEMINI_API_KEY not configured"}
+
         if not os.path.exists(file_path):
             return {"success": False, "error": "File not found"}
 
@@ -115,6 +131,9 @@ class RAGService:
             }
 
     def query_context(self, question: str, max_results: int = 3) -> Dict[str, Any]:
+        if self.embeddings is None:
+            return {"context": "", "sources": [], "count": 0, "error": "GEMINI_API_KEY not configured"}
+
         if self.vectorstore is None:
             self._load_vectorstore()
 
@@ -140,6 +159,15 @@ class RAGService:
             return {"context": "", "sources": [], "count": 0, "error": str(e)}
 
     def ingest_folder(self, folder_path: str = None) -> Dict[str, Any]:
+        if self.embeddings is None:
+            return {
+                "total": 0,
+                "success": 0,
+                "failed": 0,
+                "files": [],
+                "error": "GEMINI_API_KEY not configured",
+            }
+
         if folder_path is None:
             folder_path = BASE_CONHECIMENTO_DIR
 
@@ -165,6 +193,14 @@ class RAGService:
         return results
 
     def get_status(self) -> Dict[str, Any]:
+        if self.embeddings is None:
+            return {
+                "initialized": False,
+                "documents": 0,
+                "chroma_dir": CHROMA_DIR,
+                "error": "GEMINI_API_KEY not configured",
+            }
+
         if self.vectorstore is None:
             self._load_vectorstore()
 

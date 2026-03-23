@@ -17,10 +17,11 @@ logger = logging.getLogger("ai_service")
 from app.video_database import get_recommended_videos
 from app.rag_service import rag_db
 
-genai.configure(api_key=os.environ["GEMINI_API_KEY"])
-
-
 def _get_model():
+    api_key = os.environ.get("GEMINI_API_KEY")
+    if not api_key:
+        raise RuntimeError("GEMINI_API_KEY nao configurada.")
+    genai.configure(api_key=api_key)
     return genai.GenerativeModel("gemini-2.5-flash")
 
 
