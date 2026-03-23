@@ -92,6 +92,22 @@ services:
     networks:
       - medtutor-net
 
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: medtutor-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    depends_on:
+      - backend
+    volumes:
+      - ./infra/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - medtutor-net
+
   promtail:
     image: grafana/promtail:3.0.0
     container_name: medtutor-promtail
@@ -111,6 +127,27 @@ services:
     networks:
       - medtutor-net
 
+  grafana:
+    image: grafana/grafana:11.1.4
+    container_name: medtutor-grafana
+    restart: unless-stopped
+    environment:
+      GF_AUTH_ANONYMOUS_ENABLED: "true"
+      GF_AUTH_DISABLE_LOGIN_FORM: "true"
+      GF_AUTH_ANONYMOUS_ORG_ROLE: Viewer
+      GF_USERS_DEFAULT_THEME: light
+    ports:
+      - "${GRAFANA_PORT:-3001}:3000"
+    depends_on:
+      - loki
+      - prometheus
+    volumes:
+      - ./infra/observability/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./infra/observability/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    networks:
+      - medtutor-net
+
 networks:
   medtutor-net:
     driver: bridge
@@ -119,4 +156,6 @@ volumes:
   postgres_data:
   chroma_data:
   loki_data:
+  prometheus_data:
   promtail_positions:
+  grafana_data:

@@ -38,6 +38,7 @@ make ports
 - Frontend: `http://localhost:3000`
 - Backend: `http://localhost:8002`
 - Swagger: `http://localhost:8002/docs`
+- Grafana: `http://localhost:3001`
 
 ## Politica de Portas
 
@@ -76,6 +77,7 @@ Variaveis principais:
 - `BACKEND_PORT`
 - `BACKEND_INTERNAL_PORT`
 - `FRONTEND_PORT`
+- `GRAFANA_PORT`
 - `DATABASE_URL`
 - `CHROMA_URL`
 - `DB_WAIT_TIMEOUT`
@@ -89,6 +91,7 @@ Variaveis principais:
 - `make down`: derruba a stack
 - `make logs`: acompanha logs dos containers
 - `make logs-observability`: acompanha apenas backend, Loki e Promtail
+- `make observability`: mostra o estado dos containers de observabilidade
 - `make build`: reconstrui as imagens
 - `make ports`: mostra as portas locais do projeto
 - `make lint`: executa os hooks de qualidade
@@ -149,12 +152,14 @@ PATH="$HOME/.local/bin:$PATH" pre-commit run --all-files
 
 - O backend emite logs estruturados em JSON com `python-json-logger`
 - Cada evento inclui `asctime`, `levelname`, `module` e `message`, o que facilita filtros no Grafana
-- O `docker compose` sobe `loki` e `promtail` junto com a aplicacao
+- O `docker compose` sobe `loki`, `promtail`, `prometheus` e `grafana` junto com a aplicacao
 - O Promtail coleta logs dos containers `backend`, `frontend`, `postgres` e `chromadb` e envia ao Loki
+- O Grafana e provisionado automaticamente com as datasources de `Loki` e `Prometheus`
 
 Fluxo rapido:
 
 ```bash
 make up
+make observability
 make logs-observability
 ```

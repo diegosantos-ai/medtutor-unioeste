@@ -3,7 +3,7 @@
 # ==============================================================================
 # Herda a inteligência da Plataforma e garante chamadas centralizadas
 DEV_WORKSPACE ?= $(HOME)/dev-workspace
-.PHONY: help setup lint test build up down logs logs-observability run-dev ports
+.PHONY: help setup lint test build up down logs logs-observability run-dev ports observability
 
 # Cores para output
 CYAN := \033[36m
@@ -50,9 +50,10 @@ ports: ## Mostra as portas locais alocadas e a política do projeto
 	@echo "$(CYAN)Portas do projeto MedTutor$(RESET)"
 	@echo "Backend  -> http://localhost:$${BACKEND_PORT:-8002}"
 	@echo "Frontend -> http://localhost:$${FRONTEND_PORT:-3000}"
+	@echo "Grafana  -> http://localhost:$${GRAFANA_PORT:-3001}"
 	@echo "Postgres e ChromaDB ficam apenas na rede interna do compose."
 	@echo "$(YELLOW)Portas reservadas pelo infra-core: 80, 8080, 5432, 6379, 8000, 5000$(RESET)"
-	@ss -ltn | awk 'NR==1 || $$4 ~ /:(3000|8002)$$/'
+	@ss -ltn | awk 'NR==1 || $$4 ~ /:(3000|3001|8002)$$/'
 
 down: ## Derruba a infraestrutura do MedTutor
 	@echo "$(YELLOW)Encerrando serviços...$(RESET)"
@@ -63,6 +64,9 @@ logs: ## Acompanha os logs contínuos dos containers
 
 logs-observability: ## Acompanha apenas Loki, Promtail e backend
 	docker compose logs -f loki promtail backend
+
+observability: ## Mostra o stack de observabilidade em execucao
+	docker compose ps loki promtail prometheus grafana
 
 test: ## Executa baterias de testes (Python via Docker e NPM local)
 	@echo "$(CYAN)Executando testes da aplicação...$(RESET)"
