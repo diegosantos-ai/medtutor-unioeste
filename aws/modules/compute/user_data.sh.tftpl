@@ -1,0 +1,55 @@
+#!/bin/bash
+set -euxo pipefail
+
+dnf update -y
+dnf install -y awscli cronie docker git make openssl
+
+systemctl enable docker
+systemctl start docker
+usermod -aG docker ec2-user
+
+curl -SL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose
+chmod +x /usr/local/bin/docker-compose
+ln -sf /usr/local/bin/docker-compose /usr/bin/docker-compose
+
+cat >/etc/cron.d/medtutor-cert-renew <<'EOF'
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+0 3 * * * ec2-user cd /home/ec2-user/app && DOMAIN_NAME='${domain_name}' LETSENCRYPT_EMAIL='${letsencrypt_email}' /usr/bin/make renew-prod-ssl >> /var/log/medtutor-cert-renew.log 2>&1
+EOF
+chmod 644 /etc/cron.d/medtutor-cert-renew
+systemctl enable crond
+systemctl start crond
+
+sudo -u ec2-user bash <<'EOF'
+set -euxo pipefail
+
+if [ -z "${domain_name}" ] || [ -z "${aws_region}" ] || [ -z "${postgres_password_ssm_parameter}" ] || [ -z "${grafana_admin_user_ssm_parameter}" ] || [ -z "${grafana_admin_password_ssm_parameter}" ]; then
+  exit 0
+fi
+
+cd /home/ec2-user
+if [ ! -d app/.git ]; then
+  git clone "${repo_url}" app
+fi
+
+cd app
+git fetch --all --prune
+
+if git show-ref --verify --quiet "refs/remotes/origin/${repo_ref}"; then
+  git checkout -B "${repo_ref}" "origin/${repo_ref}"
+else
+  git checkout "${repo_ref}"
+fi
+
+make bootstrap-prod \
+  DOMAIN_NAME="${domain_name}" \
+  LETSENCRYPT_EMAIL="${letsencrypt_email}" \
+  AWS_REGION="${aws_region}" \
+  POSTGRES_PASSWORD_SSM_PARAMETER="${postgres_password_ssm_parameter}" \
+  GRAFANA_ADMIN_USER_SSM_PARAMETER="${grafana_admin_user_ssm_parameter}" \
+  GRAFANA_ADMIN_PASSWORD_SSM_PARAMETER="${grafana_admin_password_ssm_parameter}" \
+  GEMINI_API_KEY_SSM_PARAMETER="${gemini_api_key_ssm_parameter}" \
+  OPENAI_API_KEY_SSM_PARAMETER="${openai_api_key_ssm_parameter}" \
+  CORS_ALLOWED_ORIGINS="https://${domain_name}"
+EOF

@@ -1,140 +1,167 @@
-version: "3.8"
-
 services:
-  # ==========================================
-  # 🌐 Frontend & Reverse Proxy
-  # ==========================================
-  medtutor-frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile.frontend
-    container_name: medtutor-frontend
-    ports:
-      - "80:80"   # Exposição principal da VPS pro tráfego Web
-    depends_on:
-      - medtutor-api
-    networks:
-      - medtutor-net
-    restart: always
-
-  # ==========================================
-  # 🧠 Backend Core & IA
-  # ==========================================
-  medtutor-api:
+  backend:
     build:
       context: ./backend
       dockerfile: Dockerfile
-    container_name: medtutor-api
-    # Não expõe porta pro host (segurança). O Nginx/frontend repassa as requests!
-    expose:
-      - "8000"
+    container_name: medtutor-backend
+    restart: unless-stopped
     environment:
-      - DATABASE_URL=${DATABASE_URL:-postgresql://postgres:postgres@medtutor-postgres:5432/medtutor_db}
-      - REDIS_URL=${REDIS_URL:-redis://medtutor-redis:6379/0}
-      - CHROMA_URL=${CHROMA_URL:-http://medtutor-chroma:8000}
-      # Via ADR-0006: Injeção Zsh da host enviando variável sensível pra memória do container
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      PORT: 8000
+      DB_WAIT_TIMEOUT: ${DB_WAIT_TIMEOUT:-60}
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}@postgres:5432/${POSTGRES_DB:-medtutor_db}
+      CHROMA_URL: http://chromadb:8000
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-https://${DOMAIN_NAME:?DOMAIN_NAME is required}}
     depends_on:
-      - postgres
-      - redis
-      - chromadb
+      postgres:
+        condition: service_healthy
+      chromadb:
+        condition: service_started
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/api/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
     networks:
       - medtutor-net
-    restart: always
 
-  # ==========================================
-  # 💾 Data Layers
-  # ==========================================
-  postgres:
-    image: postgres:15-alpine
-    container_name: medtutor-postgres
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        VITE_API_URL: /api
+    container_name: medtutor-frontend
+    restart: unless-stopped
     environment:
-      - POSTGRES_USER=${POSTGRES_USER:-postgres}
-      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
-      - POSTGRES_DB=${POSTGRES_DB:-medtutor_db}
+      DOMAIN_NAME: ${DOMAIN_NAME:?DOMAIN_NAME is required}
+      NGINX_ENVSUBST_OUTPUT_DIR: /etc/nginx/conf.d
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./infra/prod/nginx/frontend.prod.conf.template:/etc/nginx/templates/default.conf.template:ro
+      - ./.runtime/prod/letsencrypt:/etc/letsencrypt
+      - ./.runtime/prod/certbot:/var/www/certbot
+    depends_on:
+      backend:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q -O /dev/null http://127.0.0.1/health"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - medtutor-net
+
+  postgres:
+    image: postgres:16-alpine
+    container_name: medtutor-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required}
+      POSTGRES_DB: ${POSTGRES_DB:-medtutor_db}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-medtutor_db}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
     volumes:
       - postgres_data:/var/lib/postgresql/data
     networks:
       - medtutor-net
-    restart: always
-
-  redis:
-    image: redis:7-alpine
-    container_name: medtutor-redis
-    volumes:
-      - redis_data:/data
-    networks:
-      - medtutor-net
-    restart: always
 
   chromadb:
-    image: chromadb/chroma:latest
-    container_name: medtutor-chroma
+    image: chromadb/chroma:0.5.5
+    container_name: medtutor-chromadb
+    restart: unless-stopped
     environment:
-      - IS_PERSISTENT=TRUE
+      IS_PERSISTENT: ${CHROMA_IS_PERSISTENT:-TRUE}
     volumes:
       - chroma_data:/chroma/chroma
     networks:
       - medtutor-net
-    restart: always
-
-  # ==========================================
-  # 📊 Observability Stack (PLG)
-  # ==========================================
-  prometheus:
-    image: prom/prometheus:v2.44.0
-    container_name: medtutor-prometheus
-    volumes:
-      - ./infra/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
-      - prometheus_data:/prometheus
-    command:
-      - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-    networks:
-      - medtutor-net
-    restart: always
 
   loki:
-    image: grafana/loki:2.8.2
+    image: grafana/loki:2.9.8
     container_name: medtutor-loki
-    volumes:
-      - ./infra/observability/loki/local-config.yaml:/etc/loki/local-config.yaml
-      - loki_data:/tmp/loki
+    restart: unless-stopped
+    user: "0:0"
     command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./infra/observability/loki/local-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki_data:/tmp/loki
     networks:
       - medtutor-net
-    restart: always
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: medtutor-prometheus
+    restart: unless-stopped
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --web.enable-lifecycle
+    depends_on:
+      - backend
+    volumes:
+      - ./infra/observability/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    networks:
+      - medtutor-net
 
   promtail:
-    image: grafana/promtail:2.8.2
+    image: grafana/promtail:3.0.0
     container_name: medtutor-promtail
-    volumes:
-      - /var/log:/var/log
-      - /var/run/docker.sock:/var/run/docker.sock:ro
-      - ./infra/observability/promtail/promtail-config.yaml:/etc/promtail/config.yml
+    restart: unless-stopped
+    user: "0:0"
     command: -config.file=/etc/promtail/config.yml
+    environment:
+      DOCKER_API_VERSION: ${DOCKER_API_VERSION:-1.44}
+    depends_on:
+      - loki
+      - backend
+      - frontend
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./infra/observability/promtail/promtail-config.yaml:/etc/promtail/config.yml:ro
+      - promtail_positions:/tmp/promtail
     networks:
       - medtutor-net
-    restart: always
 
   grafana:
-    image: grafana/grafana:9.5.2
+    image: grafana/grafana:11.1.4
     container_name: medtutor-grafana
+    restart: unless-stopped
     environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_USER:-admin}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_PASS:-admin123}
-    volumes:
-      - ./infra/observability/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources
-      - ./infra/observability/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards
-      - grafana_data:/var/lib/grafana
-    ports:
-      - "3000:3000"
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:?GRAFANA_ADMIN_USER is required}
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required}
+      GF_USERS_DEFAULT_THEME: light
     depends_on:
-      - prometheus
       - loki
+      - prometheus
+    volumes:
+      - ./infra/observability/grafana/provisioning/datasources:/etc/grafana/provisioning/datasources:ro
+      - ./infra/observability/grafana/provisioning/dashboards:/etc/grafana/provisioning/dashboards:ro
+      - grafana_data:/var/lib/grafana
     networks:
       - medtutor-net
-    restart: always
+
+  certbot:
+    image: certbot/certbot:latest
+    container_name: medtutor-certbot
+    profiles:
+      - certbot
+    volumes:
+      - ./.runtime/prod/letsencrypt:/etc/letsencrypt
+      - ./.runtime/prod/certbot:/var/www/certbot
+    networks:
+      - medtutor-net
 
 networks:
   medtutor-net:
@@ -142,8 +169,8 @@ networks:
 
 volumes:
   postgres_data:
-  redis_data:
   chroma_data:
-  prometheus_data:
   loki_data:
+  prometheus_data:
+  promtail_positions:
   grafana_data:

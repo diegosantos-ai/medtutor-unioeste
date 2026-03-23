@@ -78,6 +78,9 @@ Variaveis principais:
 - `BACKEND_INTERNAL_PORT`
 - `FRONTEND_PORT`
 - `GRAFANA_PORT`
+- `DOMAIN_NAME`
+- `LETSENCRYPT_EMAIL`
+- `CORS_ALLOWED_ORIGINS`
 - `DATABASE_URL`
 - `CHROMA_URL`
 - `DB_WAIT_TIMEOUT`
@@ -95,6 +98,10 @@ Variaveis principais:
 - `make build`: reconstrui as imagens
 - `make ports`: mostra as portas locais do projeto
 - `make lint`: executa os hooks de qualidade
+- `make bootstrap-prod`: prepara runtime, busca secrets do SSM e sobe a stack de producao
+- `make issue-prod-ssl`: emite o certificado Lets Encrypt apos o DNS apontar para a EC2
+- `make renew-prod-ssl`: renova os certificados e recarrega o Nginx
+- `make deploy-aws-prod`: aplica o Terraform do ambiente `prod`
 
 ## Qualidade e Seguranca
 
@@ -147,6 +154,26 @@ PATH="$HOME/.local/bin:$PATH" pre-commit run --all-files
 - O `entrypoint.sh` do backend aguarda o banco, aplica migrations do Alembic e depois sobe o Uvicorn
 - O frontend usa Nginx com proxy para o backend na rede interna do compose
 - O backend sobe mesmo sem `GEMINI_API_KEY`; nesse caso, apenas os fluxos de IA ficam indisponiveis
+
+## Producao
+
+- A aplicacao de producao usa [docker-compose.prod.yml](/home/diego/labs/projects/medtutor-unioeste/docker-compose.prod.yml)
+- O dominio continua administrado na Vercel, mas o apontamento DNS deve ir para o Elastic IP da EC2
+- O HTTPS e emitido na propria instancia com Certbot
+- O Grafana continua ativo em producao, mas sem exposicao publica
+
+Fluxo recomendado para a primeira entrega:
+
+```bash
+make deploy-aws-prod
+make bootstrap-prod DOMAIN_NAME=demo.seu-dominio.com AWS_REGION=us-east-1 \
+  POSTGRES_PASSWORD_SSM_PARAMETER=/medtutor/prod/postgres_password \
+  GRAFANA_ADMIN_USER_SSM_PARAMETER=/medtutor/prod/grafana_admin_user \
+  GRAFANA_ADMIN_PASSWORD_SSM_PARAMETER=/medtutor/prod/grafana_admin_password \
+  GEMINI_API_KEY_SSM_PARAMETER=/medtutor/prod/gemini_api_key \
+  OPENAI_API_KEY_SSM_PARAMETER=/medtutor/prod/openai_api_key
+make issue-prod-ssl DOMAIN_NAME=demo.seu-dominio.com LETSENCRYPT_EMAIL=ops@seu-dominio.com
+```
 
 ## Observabilidade
 

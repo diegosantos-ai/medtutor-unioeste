@@ -16,6 +16,18 @@ locals {
     ManagedBy   = "Terraform"
     Owner       = var.owner
   }
+  ssm_parameter_names = compact([
+    var.postgres_password_ssm_parameter,
+    var.grafana_admin_user_ssm_parameter,
+    var.grafana_admin_password_ssm_parameter,
+    var.gemini_api_key_ssm_parameter,
+    var.openai_api_key_ssm_parameter,
+  ])
+  aws_region_name = var.aws_region != "" ? var.aws_region : data.aws_region.current.region
+  ssm_parameter_arns = [
+    for parameter_name in local.ssm_parameter_names :
+    "arn:aws:ssm:${local.aws_region_name}:${data.aws_caller_identity.current.account_id}:parameter/${trim(parameter_name, "/")}"
+  ]
 }
 
 data "aws_ami" "amazon_linux" {
@@ -33,47 +45,90 @@ data "aws_ami" "amazon_linux" {
   }
 }
 
+data "aws_caller_identity" "current" {}
+
+data "aws_region" "current" {}
+
+data "aws_iam_policy_document" "web_assume_role" {
+  statement {
+    actions = ["sts:AssumeRole"]
+
+    principals {
+      identifiers = ["ec2.amazonaws.com"]
+      type        = "Service"
+    }
+  }
+}
+
+data "aws_iam_policy_document" "web_ssm_access" {
+  statement {
+    actions = [
+      "ssm:GetParameter",
+      "ssm:GetParameters",
+    ]
+    resources = local.ssm_parameter_arns
+  }
+
+  statement {
+    actions   = ["kms:Decrypt"]
+    resources = ["*"]
+  }
+}
+
+resource "aws_iam_role" "web" {
+  name               = "${local.name_prefix}-web-role"
+  assume_role_policy = data.aws_iam_policy_document.web_assume_role.json
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-web-role"
+  })
+}
+
+resource "aws_iam_role_policy" "web_ssm_access" {
+  count = length(local.ssm_parameter_arns) > 0 ? 1 : 0
+
+  name   = "${local.name_prefix}-web-ssm-access"
+  role   = aws_iam_role.web.id
+  policy = data.aws_iam_policy_document.web_ssm_access.json
+}
+
+resource "aws_iam_instance_profile" "web" {
+  name = "${local.name_prefix}-web-instance-profile"
+  role = aws_iam_role.web.name
+}
+
 resource "aws_instance" "web" {
   ami                         = data.aws_ami.amazon_linux.id
   instance_type               = var.instance_type
   key_name                    = var.key_pair_name
   subnet_id                   = var.public_subnet_id
   vpc_security_group_ids      = [var.web_security_group_id]
-  associate_public_ip_address = true
+  associate_public_ip_address = false
+  iam_instance_profile        = aws_iam_instance_profile.web.name
 
-  user_data = <<-EOF
-              #!/bin/bash
-              # 1. Update OS e instalação de dependências essenciais
-              dnf update -y
-              dnf install -y git make docker
-
-              # 2. Configura e Habilita o Docker Daemon
-              systemctl enable docker
-              systemctl start docker
-              usermod -aG docker ec2-user
-
-              # 3. Instala o Docker Compose Plugin autônomo
-              curl -SL "https://github.com/docker/compose/releases/latest/download/docker-compose-linux-x86_64" -o /usr/local/bin/docker-compose
-              chmod +x /usr/local/bin/docker-compose
-              ln -s /usr/local/bin/docker-compose /usr/bin/docker-compose
-
-              # 4. Bootstrap da Aplicação MedTutor
-              cd /home/ec2-user
-              git clone https://github.com/diegosantos-ai/medtutor-unioeste.git app
-              cd app
-              chown -R ec2-user:ec2-user /home/ec2-user/app
-
-              # Atenção: Conforme as diretrizes de Shift-Left Security do projeto,
-              # tokens sensíveis não são chumbados aqui. Devem ser parametrizados pelo AWS Systems Manager
-              # Exemplo abstrato de injeção defensiva de Env:
-              # export GEMINI_API_KEY=$(aws ssm get-parameter --name "/medtutor/prod/gemini_key" --with-decryption --query "Parameter.Value" --output text)
-
-              # 5. Build e Run da Stack
-              make build-prod
-              make up-prod
-              EOF
+  user_data = templatefile("${path.module}/user_data.sh.tftpl", {
+    aws_region                           = var.aws_region
+    domain_name                          = var.domain_name
+    letsencrypt_email                    = var.letsencrypt_email
+    repo_ref                             = var.repo_ref
+    repo_url                             = var.repo_url
+    postgres_password_ssm_parameter      = var.postgres_password_ssm_parameter
+    grafana_admin_user_ssm_parameter     = var.grafana_admin_user_ssm_parameter
+    grafana_admin_password_ssm_parameter = var.grafana_admin_password_ssm_parameter
+    gemini_api_key_ssm_parameter         = var.gemini_api_key_ssm_parameter
+    openai_api_key_ssm_parameter         = var.openai_api_key_ssm_parameter
+  })
 
   tags = merge(local.common_tags, {
     Name = "${local.name_prefix}-ec2-web"
+  })
+}
+
+resource "aws_eip" "web" {
+  domain   = "vpc"
+  instance = aws_instance.web.id
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-web-eip"
   })
 }

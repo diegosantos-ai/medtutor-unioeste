@@ -3,7 +3,7 @@
 # ==============================================================================
 # Herda a inteligência da Plataforma e garante chamadas centralizadas
 DEV_WORKSPACE ?= $(HOME)/dev-workspace
-.PHONY: help setup lint test build up down logs logs-observability run-dev ports observability
+.PHONY: help setup lint test build up down logs logs-observability run-dev ports observability prepare-prod-runtime fetch-prod-secrets bootstrap-prod build-prod up-prod down-prod logs-prod issue-prod-ssl renew-prod-ssl deploy-aws-prod
 
 # Cores para output
 CYAN := \033[36m
@@ -82,15 +82,81 @@ run-dev: up ## Levanta a infraestrutura de background e serve o vite em watch mo
 # ==========================================
 build-prod: ## Contrói as imagens prontas para produção (Nginx + Frontend, FastAPI isolada)
 	@echo "$(CYAN)Efetuando build da arquitetura de produção...$(RESET)"
-	docker compose -f docker-compose.prod.yml build
+	@mkdir -p .runtime/prod
+	@touch .runtime/prod/app.env
+	DOMAIN_NAME="$${DOMAIN_NAME:?DOMAIN_NAME is required}" \
+	CORS_ALLOWED_ORIGINS="$${CORS_ALLOWED_ORIGINS:-https://$${DOMAIN_NAME}}" \
+	./scripts/prod/compose.sh build
 
-up-prod: ## Sobe a infraestrutura usando docker-compose.prod.yml (Nginx e Sem Vite)
+prepare-prod-runtime: ## Cria runtime dirs e certificado self-signed temporário
+	DOMAIN_NAME="$${DOMAIN_NAME:?DOMAIN_NAME is required}" \
+	LETSENCRYPT_EMAIL="$${LETSENCRYPT_EMAIL:-}" \
+	CORS_ALLOWED_ORIGINS="$${CORS_ALLOWED_ORIGINS:-https://$${DOMAIN_NAME}}" \
+	./scripts/prod/sync_settings_env.sh
+	DOMAIN_NAME="$${DOMAIN_NAME:?DOMAIN_NAME is required}" ./scripts/prod/ensure_runtime_dirs.sh
+	DOMAIN_NAME="$${DOMAIN_NAME:?DOMAIN_NAME is required}" ./scripts/prod/init_self_signed_cert.sh
+
+fetch-prod-secrets: ## Busca segredos do SSM e materializa env de runtime da producao
+	AWS_REGION="$${AWS_REGION:?AWS_REGION is required}" \
+	POSTGRES_PASSWORD_SSM_PARAMETER="$${POSTGRES_PASSWORD_SSM_PARAMETER:?POSTGRES_PASSWORD_SSM_PARAMETER is required}" \
+	GRAFANA_ADMIN_USER_SSM_PARAMETER="$${GRAFANA_ADMIN_USER_SSM_PARAMETER:?GRAFANA_ADMIN_USER_SSM_PARAMETER is required}" \
+	GRAFANA_ADMIN_PASSWORD_SSM_PARAMETER="$${GRAFANA_ADMIN_PASSWORD_SSM_PARAMETER:?GRAFANA_ADMIN_PASSWORD_SSM_PARAMETER is required}" \
+	GEMINI_API_KEY_SSM_PARAMETER="$${GEMINI_API_KEY_SSM_PARAMETER:-}" \
+	OPENAI_API_KEY_SSM_PARAMETER="$${OPENAI_API_KEY_SSM_PARAMETER:-}" \
+	./scripts/prod/fetch_ssm_env.sh
+
+bootstrap-prod: ## Prepara runtime, busca secrets e sobe a stack de producao
+	$(MAKE) prepare-prod-runtime \
+		DOMAIN_NAME="$${DOMAIN_NAME:?DOMAIN_NAME is required}" \
+		LETSENCRYPT_EMAIL="$${LETSENCRYPT_EMAIL:-}" \
+		CORS_ALLOWED_ORIGINS="$${CORS_ALLOWED_ORIGINS:-https://$${DOMAIN_NAME}}"
+	$(MAKE) fetch-prod-secrets \
+		AWS_REGION="$${AWS_REGION:?AWS_REGION is required}" \
+		POSTGRES_PASSWORD_SSM_PARAMETER="$${POSTGRES_PASSWORD_SSM_PARAMETER:?POSTGRES_PASSWORD_SSM_PARAMETER is required}" \
+		GRAFANA_ADMIN_USER_SSM_PARAMETER="$${GRAFANA_ADMIN_USER_SSM_PARAMETER:?GRAFANA_ADMIN_USER_SSM_PARAMETER is required}" \
+		GRAFANA_ADMIN_PASSWORD_SSM_PARAMETER="$${GRAFANA_ADMIN_PASSWORD_SSM_PARAMETER:?GRAFANA_ADMIN_PASSWORD_SSM_PARAMETER is required}" \
+		GEMINI_API_KEY_SSM_PARAMETER="$${GEMINI_API_KEY_SSM_PARAMETER:-}" \
+		OPENAI_API_KEY_SSM_PARAMETER="$${OPENAI_API_KEY_SSM_PARAMETER:-}"
+	$(MAKE) build-prod DOMAIN_NAME="$${DOMAIN_NAME:?DOMAIN_NAME is required}" CORS_ALLOWED_ORIGINS="$${CORS_ALLOWED_ORIGINS:-https://$${DOMAIN_NAME}}"
+	$(MAKE) up-prod DOMAIN_NAME="$${DOMAIN_NAME:?DOMAIN_NAME is required}" CORS_ALLOWED_ORIGINS="$${CORS_ALLOWED_ORIGINS:-https://$${DOMAIN_NAME}}"
+
+up-prod: prepare-prod-runtime ## Sobe a infraestrutura usando docker-compose.prod.yml com HTTPS e servicos internos
 	@echo "$(GREEN)Iniciando ambiente de Produção via compose...$(RESET)"
-	COMPOSE_PROJECT_NAME=$$(basename $(CURDIR))-prod docker compose -f docker-compose.prod.yml up -d
+	DOMAIN_NAME="$${DOMAIN_NAME:?DOMAIN_NAME is required}" \
+	CORS_ALLOWED_ORIGINS="$${CORS_ALLOWED_ORIGINS:-https://$${DOMAIN_NAME}}" \
+	./scripts/prod/compose.sh up -d backend frontend postgres chromadb loki prometheus promtail grafana
 
 deploy-aws: ## Orquestra a infraestrutura AWS via Terraform (aws/envs/dev)
 	@echo "$(CYAN)Inicializando e aplicando Terraform na AWS...$(RESET)"
 	cd aws/envs/dev && terraform init && terraform apply -auto-approve
+
+deploy-aws-prod: ## Orquestra a infraestrutura AWS via Terraform (aws/envs/prod)
+	@echo "$(CYAN)Inicializando e aplicando Terraform na AWS de produção...$(RESET)"
+	cd aws/envs/prod && terraform init && terraform apply -auto-approve
+
+down-prod: ## Derruba a stack de producao
+	./scripts/prod/compose.sh down
+
+logs-prod: ## Acompanha logs da stack de producao
+	./scripts/prod/compose.sh logs -f
+
+issue-prod-ssl: ## Emite certificado Lets Encrypt apos o DNS resolver para a instancia
+	DOMAIN_NAME="$${DOMAIN_NAME:?DOMAIN_NAME is required}" ./scripts/prod/ensure_runtime_dirs.sh
+	DOMAIN_NAME="$${DOMAIN_NAME:?DOMAIN_NAME is required}" \
+	LETSENCRYPT_EMAIL="$${LETSENCRYPT_EMAIL:?LETSENCRYPT_EMAIL is required}" \
+	./scripts/prod/compose.sh --profile certbot run --rm certbot certonly \
+		--webroot \
+		--webroot-path /var/www/certbot \
+		--email "$${LETSENCRYPT_EMAIL}" \
+		--agree-tos \
+		--no-eff-email \
+		--keep-until-expiring \
+		-d "$${DOMAIN_NAME}"
+	./scripts/prod/compose.sh exec frontend nginx -s reload
+
+renew-prod-ssl: ## Renova certificados Lets Encrypt e recarrega o Nginx
+	./scripts/prod/compose.sh --profile certbot run --rm certbot renew --webroot --webroot-path /var/www/certbot
+	./scripts/prod/compose.sh exec frontend nginx -s reload
 
 # ==========================================
 # 🤖 GESTÃO DE AGENTES & IA

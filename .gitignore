@@ -40,3 +40,4 @@ backend/app/chroma_data/
 .vercel
 .env*.local
 teste-python/.venv/
+.runtime/

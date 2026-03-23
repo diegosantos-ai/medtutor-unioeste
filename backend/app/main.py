@@ -1,4 +1,5 @@
 import logging
+import os
 from logging.config import dictConfig
 
 from fastapi import FastAPI, Request
@@ -51,6 +52,20 @@ dictConfig(
 logger = logging.getLogger(__name__)
 
 
+def _allowed_origins() -> list[str]:
+    configured_origins = os.environ.get("CORS_ALLOWED_ORIGINS", "")
+    if configured_origins.strip():
+        return [
+            origin.strip() for origin in configured_origins.split(",") if origin.strip()
+        ]
+
+    return [
+        "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5173",
+    ]
+
+
 def create_app() -> FastAPI:
     from app.routes import router
 
@@ -64,13 +79,7 @@ def create_app() -> FastAPI:
 
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[
-            "http://localhost:5173",
-            "http://localhost:5174",
-            "http://127.0.0.1:5173",
-            "https://medtutor-unioeste.vercel.app",
-            "https://medtutor-unioeste-santosdiegoj86-6571s-projects.vercel.app",
-        ],
+        allow_origins=_allowed_origins(),
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],

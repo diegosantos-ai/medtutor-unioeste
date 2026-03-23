@@ -71,7 +71,7 @@ moved {
 
 moved {
   from = aws_vpc_security_group_ingress_rule.web_grafana
-  to   = module.security.aws_vpc_security_group_ingress_rule.web_grafana
+  to   = module.security.aws_vpc_security_group_ingress_rule.web_https
 }
 
 module "compute" {

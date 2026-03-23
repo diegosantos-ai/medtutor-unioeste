@@ -71,19 +71,29 @@ moved {
 
 moved {
   from = aws_vpc_security_group_ingress_rule.web_grafana
-  to   = module.security.aws_vpc_security_group_ingress_rule.web_grafana
+  to   = module.security.aws_vpc_security_group_ingress_rule.web_https
 }
 
 module "compute" {
   source = "../../modules/compute"
 
-  project_name          = var.project_name
-  environment           = var.environment
-  owner                 = var.owner
-  instance_type         = var.instance_type
-  key_pair_name         = var.key_pair_name
-  public_subnet_id      = module.network.public_subnet_id
-  web_security_group_id = module.security.web_security_group_id
+  project_name                         = var.project_name
+  environment                          = var.environment
+  owner                                = var.owner
+  instance_type                        = var.instance_type
+  key_pair_name                        = var.key_pair_name
+  public_subnet_id                     = module.network.public_subnet_id
+  web_security_group_id                = module.security.web_security_group_id
+  repo_url                             = var.repo_url
+  repo_ref                             = var.repo_ref
+  domain_name                          = var.domain_name
+  letsencrypt_email                    = var.letsencrypt_email
+  aws_region                           = var.aws_region
+  postgres_password_ssm_parameter      = var.postgres_password_ssm_parameter
+  grafana_admin_user_ssm_parameter     = var.grafana_admin_user_ssm_parameter
+  grafana_admin_password_ssm_parameter = var.grafana_admin_password_ssm_parameter
+  gemini_api_key_ssm_parameter         = var.gemini_api_key_ssm_parameter
+  openai_api_key_ssm_parameter         = var.openai_api_key_ssm_parameter
 }
 
 moved {

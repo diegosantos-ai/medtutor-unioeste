@@ -53,6 +53,11 @@ output "web_instance_public_ip" {
   value       = module.compute.web_instance_public_ip
 }
 
+output "web_instance_elastic_ip" {
+  description = "Elastic IP fixo associado à instância EC2 web"
+  value       = module.compute.web_instance_elastic_ip
+}
+
 output "web_instance_public_dns" {
   description = "DNS público da instância EC2 web"
   value       = module.compute.web_instance_public_dns
