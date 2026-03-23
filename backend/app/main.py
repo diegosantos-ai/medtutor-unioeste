@@ -1,18 +1,17 @@
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-from prometheus_fastapi_instrumentator import Instrumentator
 import logging
+
+from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
+from prometheus_fastapi_instrumentator import Instrumentator
 from pythonjsonlogger import jsonlogger
 
-from app.database import engine, Base
 from app.routes import router
 
 # Setup Structured JSON Logging for Loki/Promtail
 logger = logging.getLogger()
 logHandler = logging.StreamHandler()
-formatter = jsonlogger.JsonFormatter(
-    '%(asctime)s %(levelname)s %(name)s %(message)s'
-)
+formatter = jsonlogger.JsonFormatter("%(asctime)s %(levelname)s %(name)s %(message)s")
 logHandler.setFormatter(formatter)
 logger.addHandler(logHandler)
 logger.setLevel(logging.INFO)
@@ -37,16 +36,13 @@ app.add_middleware(
         "http://localhost:5174",
         "http://127.0.0.1:5173",
         "https://medtutor-unioeste.vercel.app",
-        "https://medtutor-unioeste-santosdiegoj86-6571s-projects.vercel.app"
+        "https://medtutor-unioeste-santosdiegoj86-6571s-projects.vercel.app",
     ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-
-from fastapi.responses import JSONResponse
-from fastapi import Request
 
 @app.exception_handler(RuntimeError)
 async def runtime_exception_handler(request: Request, exc: RuntimeError):
@@ -56,7 +52,9 @@ async def runtime_exception_handler(request: Request, exc: RuntimeError):
         content={"error": str(exc)},
     )
 
+
 app.include_router(router)
+
 
 @app.get("/api/health")
 def health_check():

@@ -9,7 +9,7 @@
 - **O que o projeto faz:** É um assistente de estudos guiado por Inteligência Artificial (AI-powered study assistant). Ele ajuda a organizar cronogramas de estudo, rastrear progresso, sugerir missões diárias e serve como um Tutor que responde dúvidas via chat sobre as matérias.
 - **Qual problema resolve:** A dificuldade de organização e acesso a esclarecimentos teóricos de qualidade direcionados a um vestibular bastante específico.
 - **Quem é o usuário principal:** Estudantes/Vestibulandos prestando o exame de Medicina da UNIOESTE (Baseado no `README.md`).
-- **O que está claro:** A funcionalidade de Onboarding (geração de plano), o escopo do Tutor Socrático (não dar a resposta fácil) e as trilhas de estudo (`design.md`). 
+- **O que está claro:** A funcionalidade de Onboarding (geração de plano), o escopo do Tutor Socrático (não dar a resposta fácil) e as trilhas de estudo (`design.md`).
 - **O que está mal definido (Inferência):** O `PLAN-RAG-IMPLEMENTATION.md` cita "processar +100 PDFs", porém não especifica o limite técnico de processamento e os riscos de rate-limit da API externa durante a indexação. A documentação exige que os PDFs fiquem numa pasta `base_conhecimento/`, mas não é claro no repositório de onde ou como esses arquivos grandes entram no CI/CD ou repositório.
 
 ## 2. Stack e arquitetura
@@ -37,14 +37,14 @@
   - `make run-dev`: Serve o Vite frontend na máquina local em watch mode.
   - `make test`: Roda os testes Python (`unittest`) dentro do contêiner e em seguida NPM tests locais.
   - `make lint`: Roda o `pre-commit` para checagem estática (POSIX e gitleaks).
-- **Como validar cada etapa:** 
-  - Validar serviços: Dar `docker ps` e verificar conteineres nas portas 8096 (API), 5432 (Postgres), 6379 (Redis), 8000 (Chroma), 3000 (Grafana). 
+- **Como validar cada etapa:**
+  - Validar serviços: Dar `docker ps` e verificar conteineres nas portas 8096 (API), 5432 (Postgres), 6379 (Redis), 8000 (Chroma), 3000 (Grafana).
   - Validar UI: Acessar porta 5173 no browser.
 - **O que pode falhar e por quê:** Conflito de port bind (ex: ter postgres rodando nativo na 5432 do seu SO Linux) e quebra do motor de RAG caso `GEMINI_API_KEY` termine em string vazia.
 
 ## 5. Fluxo principal do sistema
 - **Entrada (Onboarding):** Frontend captura estilo, dias de prova e deficiências do estudante e bate POST no FastAPI.
-- **Processamento 1 (Planner):** Backend (`ai_service.py` na funcao `generate_study_plan`) passa metadados ao Gemini com um prompt focado e aguarda um JSON. Parseia o JSON anexando URLs de video validadas de Mock (`video_database.py`). 
+- **Processamento 1 (Planner):** Backend (`ai_service.py` na funcao `generate_study_plan`) passa metadados ao Gemini com um prompt focado e aguarda um JSON. Parseia o JSON anexando URLs de video validadas de Mock (`video_database.py`).
 - **Entrada (Dúvidas/Chat):** Usuário pergunta algo no "TutorChat".
 - **Processamento 2 (RAG):** O Backend (`rag_service.py/query_context`) faz Embed da pergunta -> Busca Top-K similaridades no ChromaDB.
 - **Processamento 3 (Context Answer):** Injeta o contexto recuperado junto ao "Chain of Thought" do coordenador num prompt rigoroso. Retorna ao usuário a explicação e a fonte documental.
@@ -56,19 +56,19 @@
 - **Provedores de Infra:** Terraform apontado para **AWS** VPC, EC2, SG via Action de Deploy (citado nos `.github/workflows`). Para frontend puro, o `README` sugere Vercel.
 
 ## 7. Estado atual e maturidade
-- **Nível:** Projeto no estágio "Produção Inicial (MVP Avançado)". 
-- **Sinais:** Possui telemetria completa Dockerizada via stack modern (Grafana/Loki/Prom). Scripts Terraform modulares e workflows CI/CD já implementados. 
+- **Nível:** Projeto no estágio "Produção Inicial (MVP Avançado)".
+- **Sinais:** Possui telemetria completa Dockerizada via stack modern (Grafana/Loki/Prom). Scripts Terraform modulares e workflows CI/CD já implementados.
 - **Conflito de Documentação:** O `PLAN-RAG-IMPLEMENTATION.md` diz que o serviço RAG está usando Mocks. *No entanto*, o arquivo atual `backend/app/rag_service.py` possui funções altamente complexificadas com Instâncias VectorStore puras ChromaDB, carregamento PyPDF e queries reais prontas para rodar. Isto infere que a sprint de transição RAG já rodou pesadamente, mas não checou o checkbox na doc.
 
 ## 8. Riscos técnicos e operacionais
 *(Fatos observáveis)*
 - **Bottleneck Síncrono de Ingestão:** Em `rag_service.py`, a função `ingest_folder()` varre os PDFs iterativamente local. Como não usa filas amadurecidas (como Celery ou BackgroundTasks do FastAPI em brokers), se disparado em Endpoint, causará timeouts do HTTP massivos e punições de rate limit do Google Embeddings.
-- **Root Pattern do Frontend:** Os componentes React UI (`Components/`, `App.tsx`, TS configs) flutuam ao lado das pastas raízes do projeto (`backend/`, `aws/`). Além de misturar IA com React, expõe os arquivos UI a perdas acidentais, exigindo segregação via Monorepo tools. 
+- **Root Pattern do Frontend:** Os componentes React UI (`Components/`, `App.tsx`, TS configs) flutuam ao lado das pastas raízes do projeto (`backend/`, `aws/`). Além de misturar IA com React, expõe os arquivos UI a perdas acidentais, exigindo segregação via Monorepo tools.
 - **Dependência Frágil em RAG Source:** O código (`test_rag.py` e config) esperam um diretório chamado `base_conhecimento/` recheado de PDFs volumosos (100+). Não vi esse diretório ser tratado por scripts CI/CD nem no Terraform (que cria instâncias Web, mas não Buckets S3 de extração). Inferência: Essa base está local apenas na máquina de quem coda.
 
 ## 9. Próximo passo recomendado
 - A principal função de valor que pode causar quebras irreversíveis é o Retrieval-Augmented Generation (RAG). **O próximo passo inteligente é testar o núcleo da malha RAG (Isolado de Rotas).**
-- **Como validar:** Rodar no terminal hospedeiro: `docker compose exec medtutor-api python test_rag.py`. 
+- **Como validar:** Rodar no terminal hospedeiro: `docker compose exec medtutor-api python test_rag.py`.
 - **Critério de Sucesso:** O STDOUT do Python não alertar Tracebacks de GoogleAPIError. Ele deve conseguir instanciar o objeto Chroma nas coleções locais mapeadas por volume, imprimir `# documents found` (mesmo se for zero) sem fechar a execução em código 1. Somente após a premissa de que a engine de banco de dados se comunica limpa com a Google API internamente, podemos refatorar ou escalar código.
 
 ## 10. Resumo executivo

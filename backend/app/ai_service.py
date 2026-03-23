@@ -1,21 +1,22 @@
-import os
-import google.generativeai as genai
 import json
+import logging
+import os
 import random
-import logging
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
+
+import google.generativeai as genai
 from google.api_core.exceptions import GoogleAPIError
+from tenacity import (
+    retry,
+    retry_if_exception_type,
+    stop_after_attempt,
+    wait_exponential,
+)
 
-logger = logging.getLogger("ai_service")
-
-import logging
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception_type
-from google.api_core.exceptions import GoogleAPIError
-
-logger = logging.getLogger("ai_service")
-
-from app.video_database import get_recommended_videos
 from app.rag_service import rag_db
+from app.video_database import get_recommended_videos
+
+logger = logging.getLogger("ai_service")
+
 
 def _get_model():
     api_key = os.environ.get("GEMINI_API_KEY")
@@ -35,7 +36,7 @@ def generate_study_plan(profile: dict):
 
     prompt = f"""
     Você é um tutor especialista em Medicina.
-    Perfil do estudante: Nome: {name}, Perfil: {profile_type}, Dias: {days}, Dificuldades: {json.dumps(difficulties)}
+    Perfil do estudante: Nome: {name}, Perfil: {profile_type}, Estilo de aprendizagem: {learning_style}, Dias: {days}, Dificuldades: {json.dumps(difficulties)}
 
     Crie um plano de estudo de {days} dias, dividindo os conteúdos das matérias, priorizando as dificuldades informadas pelo aluno.
     Para cada dia, gere tarefas teóricas, indique o tópico e o subject. Não invente URLs de vídeos. Deixe "video_url" em branco no JSON, pois o backend preencherá.
@@ -66,9 +67,16 @@ def generate_study_plan(profile: dict):
     """
 
     try:
-        @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10), retry=retry_if_exception_type(GoogleAPIError), reraise=True)
+
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_exponential(multiplier=1, min=2, max=10),
+            retry=retry_if_exception_type(GoogleAPIError),
+            reraise=True,
+        )
         def _gen():
             return model.generate_content(prompt)
+
         response = _gen()
     except Exception as e:
         logger.error(f"Falha critica no Gemini (generation): {e}")
@@ -120,14 +128,22 @@ Pergunta atual do estudante: {query}
 """
 
     try:
-        @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10), retry=retry_if_exception_type(GoogleAPIError), reraise=True)
+
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_exponential(multiplier=1, min=2, max=10),
+            retry=retry_if_exception_type(GoogleAPIError),
+            reraise=True,
+        )
         def _send():
             return chat.send_message(context_prompt)
+
         response = _send()
     except Exception as e:
         logger.error(f"Falha critica no Gemini (tutor): {e}")
-        raise RuntimeError("Serviço de IA indisponível no momento. Tente novamente mais tarde.") from e
-
+        raise RuntimeError(
+            "Serviço de IA indisponível no momento. Tente novamente mais tarde."
+        ) from e
 
     formatted_sources = [
         {
@@ -159,9 +175,16 @@ def generate_summary(subject: str, topic: str):
     """
 
     try:
-        @retry(stop=stop_after_attempt(3), wait=wait_exponential(multiplier=1, min=2, max=10), retry=retry_if_exception_type(GoogleAPIError), reraise=True)
+
+        @retry(
+            stop=stop_after_attempt(3),
+            wait=wait_exponential(multiplier=1, min=2, max=10),
+            retry=retry_if_exception_type(GoogleAPIError),
+            reraise=True,
+        )
         def _gen():
             return model.generate_content(prompt)
+
         response = _gen()
     except Exception as e:
         logger.error(f"Falha critica no Gemini (generation): {e}")

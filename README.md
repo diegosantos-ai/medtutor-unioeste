@@ -84,12 +84,50 @@ Variaveis principais:
 
 ## Comandos Uteis
 
+- `make setup`: instala dependencias locais e registra os hooks do `pre-commit`
 - `make up`: sobe a stack local
 - `make down`: derruba a stack
 - `make logs`: acompanha logs dos containers
 - `make build`: reconstrui as imagens
 - `make ports`: mostra as portas locais do projeto
 - `make lint`: executa os hooks de qualidade
+
+## Qualidade e Seguranca
+
+O projeto bloqueia falhas antes do commit via `pre-commit`.
+
+Hooks ativos:
+
+- `gitleaks`: deteccao de segredos
+- `terraform_tflint`: lint de Terraform
+- `shellcheck`: validacao de scripts shell
+- `ruff` e `ruff-format`: lint e formatacao Python
+- validacoes auxiliares de YAML, conflitos de merge, chaves privadas e whitespace
+
+Fluxo recomendado:
+
+```bash
+make setup
+make lint
+```
+
+Comandos de teste mais uteis:
+
+```bash
+make setup
+make lint
+make up
+make ports
+curl http://localhost:8002/api/health
+curl -I http://localhost:8002/docs
+curl -I http://localhost:3000/
+```
+
+Se quiser executar diretamente os hooks sem passar pelo `Makefile`:
+
+```bash
+PATH="$HOME/.local/bin:$PATH" pre-commit run --all-files
+```
 
 ## Estrutura
 

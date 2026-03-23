@@ -1,7 +1,7 @@
 import os
 import glob
 import chromadb
-from typing import List, Dict, Any
+from typing import Dict, Any
 from dotenv import load_dotenv
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
@@ -45,7 +45,10 @@ class RAGService:
         if True:
             try:
                 if CHROMA_URL:
-                    client = chromadb.HttpClient(host=CHROMA_URL.split("//")[-1].split(":")[0], port=int(CHROMA_URL.split(":")[-1]))
+                    client = chromadb.HttpClient(
+                        host=CHROMA_URL.split("//")[-1].split(":")[0],
+                        port=int(CHROMA_URL.split(":")[-1]),
+                    )
                     self.vectorstore = Chroma(
                         client=client,
                         embedding_function=self.embeddings,
@@ -68,7 +71,10 @@ class RAGService:
         if self.embeddings is None:
             raise RuntimeError("RAG embeddings unavailable. Configure GEMINI_API_KEY.")
         if CHROMA_URL:
-            client = chromadb.HttpClient(host=CHROMA_URL.split("//")[-1].split(":")[0], port=int(CHROMA_URL.split(":")[-1]))
+            client = chromadb.HttpClient(
+                host=CHROMA_URL.split("//")[-1].split(":")[0],
+                port=int(CHROMA_URL.split(":")[-1]),
+            )
             self.vectorstore = Chroma(
                 client=client,
                 embedding_function=self.embeddings,
@@ -132,7 +138,12 @@ class RAGService:
 
     def query_context(self, question: str, max_results: int = 3) -> Dict[str, Any]:
         if self.embeddings is None:
-            return {"context": "", "sources": [], "count": 0, "error": "GEMINI_API_KEY not configured"}
+            return {
+                "context": "",
+                "sources": [],
+                "count": 0,
+                "error": "GEMINI_API_KEY not configured",
+            }
 
         if self.vectorstore is None:
             self._load_vectorstore()

@@ -5,14 +5,15 @@ from sqlalchemy import pool
 
 import os
 import sys
+
 from dotenv import load_dotenv
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(__file__)))
 load_dotenv()
 
-from alembic import context
-from app.database import Base, SQLALCHEMY_DATABASE_URL
-import app.models
+from alembic import context  # noqa: E402
+from app.database import Base, SQLALCHEMY_DATABASE_URL  # noqa: E402
+import app.models  # noqa: F401, E402
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
@@ -74,9 +75,7 @@ def run_migrations_online() -> None:
     )
 
     with connectable.connect() as connection:
-        context.configure(
-            connection=connection, target_metadata=target_metadata
-        )
+        context.configure(connection=connection, target_metadata=target_metadata)
 
         with context.begin_transaction():
             context.run_migrations()

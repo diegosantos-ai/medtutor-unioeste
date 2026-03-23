@@ -28,9 +28,15 @@ lint: ## Executa linters e verificação estática repassando ao ruleset matriz
 # ==========================================
 # 🚀 CORE DA APLICAÇÃO MEDTUTOR
 # ==========================================
-setup: ## Instala as dependências web
+setup: ## Instala dependências locais e configura hooks de pre-commit
 	@echo "$(CYAN)Instalando dependências web...$(RESET)"
 	npm install
+	@echo "$(CYAN)Instalando pre-commit no ambiente do usuário...$(RESET)"
+	python3 -m pip install --user pre-commit
+	@echo "$(CYAN)Registrando hooks locais do Git...$(RESET)"
+	PATH="$$HOME/.local/bin:$$PATH" pre-commit install
+	PATH="$$HOME/.local/bin:$$PATH" pre-commit install --hook-type commit-msg
+	PATH="$$HOME/.local/bin:$$PATH" pre-commit install-hooks
 
 build: setup ## Constrói as imagens Docker do MedTutor
 	@echo "$(CYAN)Efetuando build dos containers...$(RESET)"

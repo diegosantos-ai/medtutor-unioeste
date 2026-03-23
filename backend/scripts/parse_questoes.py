@@ -1,11 +1,11 @@
 import os
 import json
 import openai
-from dotenv import load_load
 
 # Configure sua chave de API
 # client = openai.OpenAI(api_key=os.environ.get("OPENAI_API_KEY", "SUA_CHAVE_AQUI"))
 # Para usar, substitua SUA_CHAVE_AQUI ou defina variavel de ambiente
+
 
 def parse_questao_medicina(texto_bruto, client):
     prompt_sistema = """
@@ -35,12 +35,15 @@ def parse_questao_medicina(texto_bruto, client):
     """
 
     response = client.chat.completions.create(
-        model="gpt-4o", # Ou gpt-3.5-turbo / gpt-4o-mini
+        model="gpt-4o",  # Ou gpt-3.5-turbo / gpt-4o-mini
         messages=[
             {"role": "system", "content": prompt_sistema},
-            {"role": "user", "content": f"Transforme esta questão em JSON:\n\n{texto_bruto}"}
+            {
+                "role": "user",
+                "content": f"Transforme esta questão em JSON:\n\n{texto_bruto}",
+            },
         ],
-        response_format={ "type": "json_object" } # Garante que o retorno seja JSON
+        response_format={"type": "json_object"},  # Garante que o retorno seja JSON
     )
 
     return json.loads(response.choices[0].message.content)

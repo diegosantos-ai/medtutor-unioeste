@@ -10,7 +10,6 @@ from app.auth import (
     AuthService,
     create_access_token,
     get_current_active_user,
-    get_password_hash,
 )
 from app.schemas import (
     UserCreate,
@@ -26,8 +25,6 @@ from app.schemas import (
     CaseAnswer,
 )
 from app.rag_service import rag_db
-from app.config import BASE_CONHECIMENTO_DIR
-import uuid
 import os
 import tempfile
 
@@ -38,7 +35,7 @@ router = APIRouter(prefix="/api")
 def config_study_plan(
     payload: dict,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_active_user)
+    current_user: models.User = Depends(get_current_active_user),
 ):
     days = payload.get("days", 30)
     difficulties = payload.get("difficulties", [])
@@ -57,7 +54,7 @@ def config_study_plan(
 def create_study_plan(
     payload: dict,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_active_user)
+    current_user: models.User = Depends(get_current_active_user),
 ):
     # 1. Generate plan using AI
     profile = payload.get("profile", {})
@@ -65,7 +62,9 @@ def create_study_plan(
 
     # 2. Save the plan to the DB
     new_plan = models.StudyPlan(
-        user_id=current_user.id, week_id=plan_data.get("weekId", 1), schedule_data=plan_data
+        user_id=current_user.id,
+        week_id=plan_data.get("weekId", 1),
+        schedule_data=plan_data,
     )
     db.add(new_plan)
     db.commit()
@@ -77,7 +76,7 @@ def create_study_plan(
 def chat_with_tutor(
     payload: dict,
     db: Session = Depends(get_db),
-    current_user: models.User = Depends(get_current_active_user)
+    current_user: models.User = Depends(get_current_active_user),
 ):
     query: str = str(payload.get("query", ""))
     profile = payload.get("profile", {})
@@ -99,6 +98,7 @@ def chat_with_tutor(
     )
     if not session:
         import uuid
+
         session = models.ChatSession(
             id=str(uuid.uuid4()), user_id=current_user.id, title="Estudos"
         )
@@ -110,9 +110,7 @@ def chat_with_tutor(
     db.add(user_msg)
 
     # Log Bot Message
-    bot_msg = models.Message(
-        session_id=session.id, role="bot", text=response["text"]
-    )
+    bot_msg = models.Message(session_id=session.id, role="bot", text=response["text"])
     db.add(bot_msg)
     db.commit()
 
@@ -140,7 +138,6 @@ def update_study_plan(payload: dict, db: Session = Depends(get_db)):
     Implementação futura de Spaced Repetition e direcionamento dinâmico.
     """
     erros = payload.get("erros_hoje", [])
-    user_id = payload.get("user_id", 1)
 
     # Logic to fetch current plan and update based on `erros`
     return {

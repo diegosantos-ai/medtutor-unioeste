@@ -7,58 +7,59 @@ MEDICAL_VIDEOS = [
         "topic": "Sistema Nervoso Central",
         "title": "Anatomia do SNC - Aula Completa",
         "channel": "Anatomia Fácil com Rogério Gozzi",
-        "url": "https://www.youtube.com/watch?v=kYIIf6gB-eI"
+        "url": "https://www.youtube.com/watch?v=kYIIf6gB-eI",
     },
     {
         "subject": "Anatomia",
         "topic": "Sistema Cardiovascular",
         "title": "Anatomia do Coração",
         "channel": "Anatomia Fácil com Rogério Gozzi",
-        "url": "https://www.youtube.com/watch?v=-8L4N7U-vN0"
+        "url": "https://www.youtube.com/watch?v=-8L4N7U-vN0",
     },
     {
         "subject": "Fisiologia",
         "topic": "Potencial de Ação",
         "title": "Fisiologia - Potencial de Ação",
         "channel": "Medicina Resumida",
-        "url": "https://www.youtube.com/watch?v=FjC21z2vHSE"
+        "url": "https://www.youtube.com/watch?v=FjC21z2vHSE",
     },
     {
         "subject": "Fisiologia",
         "topic": "Fisiologia Cardíaca: Ciclo Cardíaco",
         "title": "Ciclo Cardíaco",
         "channel": "SanarFlix",
-        "url": "https://www.youtube.com/watch?v=wXlsF4U-rB4"
+        "url": "https://www.youtube.com/watch?v=wXlsF4U-rB4",
     },
     {
         "subject": "Imunologia",
         "topic": "Imunidade Inata vs Adaptativa",
         "title": "Introdução à Imunologia",
         "channel": "Jaleko Acadêmicos",
-        "url": "https://www.youtube.com/watch?v=zJg5nL0S_gM"
+        "url": "https://www.youtube.com/watch?v=zJg5nL0S_gM",
     },
     {
         "subject": "Bioquímica",
         "topic": "Ciclo de Krebs e Respiração Celular",
         "title": "Ciclo de Krebs Descomplicado",
         "channel": "Professor Kennedy Ramos",
-        "url": "https://www.youtube.com/watch?v=LqUu07-B9tE"
+        "url": "https://www.youtube.com/watch?v=LqUu07-B9tE",
     },
     {
         "subject": "Patologia",
         "topic": "Inflamação Aguda",
         "title": "Patologia Geral - Inflamação Aguda e Crônica",
         "channel": "Patologia Diária",
-        "url": "https://www.youtube.com/watch?v=aG_jR9UovwI"
+        "url": "https://www.youtube.com/watch?v=aG_jR9UovwI",
     },
     {
         "subject": "Farmacologia",
         "topic": "Farmacocinética",
         "title": "Introdução à Farmacocinética",
         "channel": "Sanar",
-        "url": "https://www.youtube.com/watch?v=Yf1oHh5H8zQ"
-    }
+        "url": "https://www.youtube.com/watch?v=Yf1oHh5H8zQ",
+    },
 ]
+
 
 def get_recommended_videos(subject: str) -> list:
     """Retorna vídeos relacionados ao tema fornecido."""

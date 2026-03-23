@@ -9,7 +9,7 @@ import os
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from app.database import SessionLocal, engine
 from app.models import Base, User, Flashcard, Question
 from app.auth import get_password_hash
@@ -324,7 +324,7 @@ def seed_data():
             print(f"ℹ️ Questões já existem: {existing_questions}")
 
         print("\n✨ Seed concluído com sucesso!")
-        print(f"\n📧 Login demo: demo@medtutor.com / demo123")
+        print("\n📧 Login demo: demo@medtutor.com / demo123")
 
     except Exception as e:
         db.rollback()
