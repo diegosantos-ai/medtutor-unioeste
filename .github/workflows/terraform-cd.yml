@@ -1,32 +1,52 @@
 name: Terraform CD
 
 on:
+  push:
+    branches:
+      - main
   workflow_dispatch:
+    inputs:
+      environment:
+        description: Ambiente para aplicar a infraestrutura
+        required: true
+        default: dev
+        type: choice
+        options:
+          - dev
+          - prod
+
+permissions:
+  contents: read
 
 jobs:
-  apply:
-    name: Terraform Apply
+  terraform-plan-main:
+    name: Terraform Plan on Main (${{ matrix.environment }})
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-
-    defaults:
-      run:
-        working-directory: ./aws/envs/dev
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [dev, prod]
 
     env:
-      AWS_REGION: ${{ vars.TF_VAR_AWS_REGION }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      TF_VAR_aws_region: ${{ vars.TF_VAR_AWS_REGION }}
-      TF_VAR_project_name: ${{ vars.TF_VAR_PROJECT_NAME }}
-      TF_VAR_environment: ${{ vars.TF_VAR_ENVIRONMENT }}
-      TF_VAR_owner: ${{ vars.TF_VAR_OWNER }}
-      TF_VAR_ssh_allowed_cidr: ${{ vars.TF_VAR_SSH_ALLOWED_CIDR }}
-      TF_VAR_key_pair_name: ${{ vars.TF_VAR_KEY_PAIR_NAME }}
+      TF_IN_AUTOMATION: "true"
+      TF_VAR_aws_region: ${{ vars.AWS_REGION || 'us-east-1' }}
+      TF_VAR_project_name: ${{ vars.TF_PROJECT_NAME || 'med-tutor' }}
+      TF_VAR_environment: ${{ matrix.environment }}
+      TF_VAR_owner: ${{ vars.TF_OWNER || 'PlatformTeam' }}
+      TF_VAR_ssh_allowed_cidr: ${{ vars.TF_SSH_ALLOWED_CIDR || '127.0.0.1/32' }}
+      TF_VAR_key_pair_name: ${{ vars.TF_KEY_PAIR_NAME || 'placeholder-key' }}
 
     steps:
       - name: Checkout do código
         uses: actions/checkout@v5
+
+      - name: Configurar credenciais AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
 
       - name: Instalar Terraform
         uses: hashicorp/setup-terraform@v3
@@ -34,7 +54,51 @@ jobs:
           terraform_version: 1.13.2
 
       - name: Terraform Init
+        working-directory: ./aws/envs/${{ matrix.environment }}
+        run: terraform init -backend=false
+
+      - name: Terraform Validate
+        working-directory: ./aws/envs/${{ matrix.environment }}
+        run: terraform validate
+
+      - name: Terraform Plan
+        working-directory: ./aws/envs/${{ matrix.environment }}
+        run: terraform plan -input=false -lock=false -no-color -var-file=terraform.tfvars.example
+
+  terraform-apply:
+    name: Terraform Apply (${{ github.event.inputs.environment }})
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+
+    env:
+      TF_IN_AUTOMATION: "true"
+      TF_VAR_aws_region: ${{ vars.AWS_REGION || 'us-east-1' }}
+      TF_VAR_project_name: ${{ vars.TF_PROJECT_NAME || 'med-tutor' }}
+      TF_VAR_environment: ${{ github.event.inputs.environment }}
+      TF_VAR_owner: ${{ vars.TF_OWNER || 'PlatformTeam' }}
+      TF_VAR_ssh_allowed_cidr: ${{ vars.TF_SSH_ALLOWED_CIDR || '127.0.0.1/32' }}
+      TF_VAR_key_pair_name: ${{ vars.TF_KEY_PAIR_NAME || 'placeholder-key' }}
+
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v5
+
+      - name: Configurar credenciais AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
+
+      - name: Instalar Terraform
+        uses: hashicorp/setup-terraform@v3
+        with:
+          terraform_version: 1.13.2
+
+      - name: Terraform Init
+        working-directory: ./aws/envs/${{ github.event.inputs.environment }}
         run: terraform init
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -input=false || (echo "Terraform apply failed with exit code $?"; exit 1)
+        working-directory: ./aws/envs/${{ github.event.inputs.environment }}
+        run: terraform apply -auto-approve -input=false

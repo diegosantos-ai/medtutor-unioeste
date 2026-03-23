@@ -1,22 +1,17 @@
 name: Terraform CI
 
 on:
-  push:
-    branches:
-      - main
-      - feature/**
   pull_request:
     branches:
       - main
 
-jobs:
-  validate:
-    name: Terraform Validate
-    runs-on: ubuntu-latest
+permissions:
+  contents: read
 
-    defaults:
-      run:
-        working-directory: ./aws/envs/dev
+jobs:
+  terraform-fmt:
+    name: Terraform Fmt
+    runs-on: ubuntu-latest
 
     steps:
       - name: Checkout do código
@@ -27,38 +22,37 @@ jobs:
         with:
           terraform_version: 1.13.2
 
-      - name: Terraform Init (sem backend)
-        run: terraform init -backend=false
+      - name: Verificar formatação
+        run: terraform fmt -check -recursive aws
 
-      - name: Terraform Format Check
-        run: terraform fmt -check -recursive
-
-      - name: Terraform Validate
-        run: terraform validate
-
-  plan:
-    name: Terraform Plan
+  terraform-validate-plan:
+    name: Terraform Validate e Plan (${{ matrix.environment }})
     runs-on: ubuntu-latest
-    needs: validate
-
-    defaults:
-      run:
-        working-directory: ./aws/envs/dev
+    needs: terraform-fmt
+    strategy:
+      fail-fast: false
+      matrix:
+        environment: [dev, prod]
 
     env:
-      AWS_REGION: ${{ vars.TF_VAR_AWS_REGION }}
-      AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-      AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      TF_VAR_aws_region: ${{ vars.TF_VAR_AWS_REGION }}
-      TF_VAR_project_name: ${{ vars.TF_VAR_PROJECT_NAME }}
-      TF_VAR_environment: ${{ vars.TF_VAR_ENVIRONMENT }}
-      TF_VAR_owner: ${{ vars.TF_VAR_OWNER }}
-      TF_VAR_ssh_allowed_cidr: ${{ vars.TF_VAR_SSH_ALLOWED_CIDR }}
-      TF_VAR_key_pair_name: ${{ vars.TF_VAR_KEY_PAIR_NAME }}
+      TF_IN_AUTOMATION: "true"
+      TF_VAR_aws_region: ${{ vars.AWS_REGION || 'us-east-1' }}
+      TF_VAR_project_name: ${{ vars.TF_PROJECT_NAME || 'med-tutor' }}
+      TF_VAR_environment: ${{ matrix.environment }}
+      TF_VAR_owner: ${{ vars.TF_OWNER || 'PlatformTeam' }}
+      TF_VAR_ssh_allowed_cidr: ${{ vars.TF_SSH_ALLOWED_CIDR || '127.0.0.1/32' }}
+      TF_VAR_key_pair_name: ${{ vars.TF_KEY_PAIR_NAME || 'placeholder-key' }}
 
     steps:
       - name: Checkout do código
         uses: actions/checkout@v5
+
+      - name: Configurar credenciais AWS
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ vars.AWS_REGION || 'us-east-1' }}
 
       - name: Instalar Terraform
         uses: hashicorp/setup-terraform@v3
@@ -66,7 +60,13 @@ jobs:
           terraform_version: 1.13.2
 
       - name: Terraform Init
-        run: terraform init
+        working-directory: ./aws/envs/${{ matrix.environment }}
+        run: terraform init -backend=false
+
+      - name: Terraform Validate
+        working-directory: ./aws/envs/${{ matrix.environment }}
+        run: terraform validate
 
       - name: Terraform Plan
-        run: terraform plan -input=false || (echo "Terraform plan failed with exit code $?"; exit 1)
+        working-directory: ./aws/envs/${{ matrix.environment }}
+        run: terraform plan -input=false -lock=false -no-color -var-file=terraform.tfvars.example
