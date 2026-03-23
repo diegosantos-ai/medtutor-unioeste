@@ -1,12 +1,15 @@
+import logging
 import os
 import glob
+from typing import Any, Dict
+
 import chromadb
-from typing import Dict, Any
 from dotenv import load_dotenv
-from langchain_text_splitters import RecursiveCharacterTextSplitter
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import Chroma
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_text_splitters import RecursiveCharacterTextSplitter
+
 from app.config import (
     CHROMA_DIR,
     CHROMA_URL,
@@ -19,6 +22,7 @@ from app.config import (
 load_dotenv()
 
 os.makedirs(CHROMA_DIR, exist_ok=True)
+logger = logging.getLogger(__name__)
 
 
 class RAGService:
@@ -31,7 +35,7 @@ class RAGService:
     def _init_embeddings(self):
         api_key = os.environ.get("GEMINI_API_KEY")
         if not api_key:
-            print("[RAG] GEMINI_API_KEY not configured. RAG embeddings disabled.")
+            logger.warning("GEMINI_API_KEY not configured. RAG embeddings disabled.")
             return
 
         self.embeddings = GoogleGenerativeAIEmbeddings(
@@ -60,11 +64,15 @@ class RAGService:
                         embedding_function=self.embeddings,
                         collection_name=CHROMA_COLLECTION_NAME,
                     )
-                print(
-                    f"[RAG] Vectorstore loaded with {self.vectorstore._collection.count()} documents"
+                logger.info(
+                    "Vectorstore loaded",
+                    extra={"documents": self.vectorstore._collection.count()},
                 )
             except Exception as e:
-                print(f"[RAG] Error loading vectorstore: {e}")
+                logger.exception(
+                    "Error loading vectorstore",
+                    extra={"error": str(e)},
+                )
                 self.vectorstore = None
 
     def _create_vectorstore(self):
@@ -166,7 +174,7 @@ class RAGService:
             return {"context": context, "sources": sources, "count": len(docs)}
 
         except Exception as e:
-            print(f"[RAG] Query error: {e}")
+            logger.exception("Query error", extra={"error": str(e)})
             return {"context": "", "sources": [], "count": 0, "error": str(e)}
 
     def ingest_folder(self, folder_path: str = None) -> Dict[str, Any]:

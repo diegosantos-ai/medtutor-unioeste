@@ -2,8 +2,8 @@ import json
 import logging
 import os
 import random
+import warnings
 
-import google.generativeai as genai
 from google.api_core.exceptions import GoogleAPIError
 from tenacity import (
     retry,
@@ -14,6 +14,10 @@ from tenacity import (
 
 from app.rag_service import rag_db
 from app.video_database import get_recommended_videos
+
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore", FutureWarning)
+    import google.generativeai as genai
 
 logger = logging.getLogger("ai_service")
 
@@ -99,7 +103,9 @@ def generate_study_plan(profile: dict):
                         task["video_channel"] = chosen["channel"]
         return data
     except Exception as e:
-        print("Error parsing Gemini response:", e)
+        logger.exception(
+            "Falha ao interpretar resposta do Gemini", extra={"error": str(e)}
+        )
         return {"weekId": 1, "schedule": []}
 
 
@@ -194,7 +200,9 @@ def generate_summary(subject: str, topic: str):
         text = response.text.replace("```json", "").replace("```", "").strip()
         return json.loads(text)
     except Exception as e:
-        print("Error parsing Gemini response:", e)
+        logger.exception(
+            "Falha ao interpretar resumo do Gemini", extra={"error": str(e)}
+        )
         return {
             "title": topic,
             "subject": subject,

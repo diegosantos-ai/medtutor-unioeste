@@ -3,7 +3,22 @@ set -e
 
 DB_WAIT_TIMEOUT="${DB_WAIT_TIMEOUT:-60}"
 
-echo "=> Aguardando banco de dados ficar acessível..."
+log_json() {
+  local level="$1"
+  local message="$2"
+  local timestamp
+
+  timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
+  message="${message//\\/\\\\}"
+  message="${message//\"/\\\"}"
+  message="${message//$'\n'/ }"
+  printf '{"asctime":"%s","levelname":"%s","module":"entrypoint","message":"%s"}\n' \
+    "$timestamp" \
+    "$level" \
+    "$message"
+}
+
+log_json "INFO" "Aguardando banco de dados ficar acessivel"
 python - <<'PY'
 import os
 import time
@@ -20,7 +35,6 @@ while time.time() < deadline:
         engine = create_engine(database_url, pool_pre_ping=True)
         with engine.connect() as connection:
             connection.execute(text("SELECT 1"))
-        print("=> Banco de dados disponível.")
         break
     except Exception as exc:
         last_error = exc
@@ -29,8 +43,20 @@ else:
     raise SystemExit(f"Nao foi possivel conectar ao banco em {timeout}s: {last_error}")
 PY
 
-echo "=> Iniciando processo de provisionamento do Banco de Dados..."
-alembic upgrade head
+log_json "INFO" "Banco de dados disponivel"
+log_json "INFO" "Iniciando processo de provisionamento do banco de dados"
+if alembic_output="$(alembic upgrade head 2>&1)"; then
+  if [ -n "$alembic_output" ]; then
+    while IFS= read -r line; do
+      log_json "INFO" "$line"
+    done <<<"$alembic_output"
+  fi
+else
+  while IFS= read -r line; do
+    log_json "ERROR" "$line"
+  done <<<"$alembic_output"
+  exit 1
+fi
 
-echo "=> Iniciando Servidor API (Uvicorn)..."
+log_json "INFO" "Iniciando servidor API com Uvicorn"
 exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT:-8000}"

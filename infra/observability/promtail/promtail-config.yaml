@@ -3,25 +3,37 @@ server:
   grpc_listen_port: 0
 
 positions:
-  filename: /tmp/positions.yaml
+  filename: /tmp/promtail/positions.yaml
 
 clients:
   - url: http://loki:3100/loki/api/v1/push
 
 scrape_configs:
-- job_name: system
-  static_configs:
-  - targets:
-      - localhost
-    labels:
-      job: varlogs
-      __path__: /var/log/*log
-
-- job_name: containers
-  docker_sd_configs:
-    - host: unix:///var/run/docker.sock
-      refresh_interval: 5s
-  relabel_configs:
-    - source_labels: ['__meta_docker_container_name']
-      regex: '/(.*)'
-      target_label: 'container'
+  - job_name: medtutor-containers
+    docker_sd_configs:
+      - host: unix:///var/run/docker.sock
+        refresh_interval: 5s
+        filters:
+          - name: name
+            values:
+              - medtutor-backend
+              - medtutor-frontend
+              - medtutor-postgres
+              - medtutor-chromadb
+    pipeline_stages:
+      - docker: {}
+      - labels:
+          stream:
+    relabel_configs:
+      - source_labels: ["__meta_docker_container_name"]
+        regex: "/(medtutor-(backend|frontend|postgres|chromadb))"
+        target_label: container
+        replacement: "$1"
+      - source_labels: ["__meta_docker_container_log_stream"]
+        target_label: stream
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_service"]
+        target_label: service
+      - source_labels: ["__meta_docker_container_label_com_docker_compose_project"]
+        target_label: compose_project
+      - replacement: medtutor
+        target_label: job

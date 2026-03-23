@@ -80,6 +80,37 @@ services:
     networks:
       - medtutor-net
 
+  loki:
+    image: grafana/loki:2.9.8
+    container_name: medtutor-loki
+    restart: unless-stopped
+    user: "0:0"
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - ./infra/observability/loki/local-config.yaml:/etc/loki/local-config.yaml:ro
+      - loki_data:/tmp/loki
+    networks:
+      - medtutor-net
+
+  promtail:
+    image: grafana/promtail:3.0.0
+    container_name: medtutor-promtail
+    restart: unless-stopped
+    user: "0:0"
+    command: -config.file=/etc/promtail/config.yml
+    environment:
+      DOCKER_API_VERSION: ${DOCKER_API_VERSION:-1.44}
+    depends_on:
+      - loki
+      - backend
+      - frontend
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./infra/observability/promtail/promtail-config.yaml:/etc/promtail/config.yml:ro
+      - promtail_positions:/tmp/promtail
+    networks:
+      - medtutor-net
+
 networks:
   medtutor-net:
     driver: bridge
@@ -87,3 +118,5 @@ networks:
 volumes:
   postgres_data:
   chroma_data:
+  loki_data:
+  promtail_positions:

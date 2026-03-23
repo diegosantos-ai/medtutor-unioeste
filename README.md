@@ -88,6 +88,7 @@ Variaveis principais:
 - `make up`: sobe a stack local
 - `make down`: derruba a stack
 - `make logs`: acompanha logs dos containers
+- `make logs-observability`: acompanha apenas backend, Loki e Promtail
 - `make build`: reconstrui as imagens
 - `make ports`: mostra as portas locais do projeto
 - `make lint`: executa os hooks de qualidade
@@ -143,3 +144,17 @@ PATH="$HOME/.local/bin:$PATH" pre-commit run --all-files
 - O `entrypoint.sh` do backend aguarda o banco, aplica migrations do Alembic e depois sobe o Uvicorn
 - O frontend usa Nginx com proxy para o backend na rede interna do compose
 - O backend sobe mesmo sem `GEMINI_API_KEY`; nesse caso, apenas os fluxos de IA ficam indisponiveis
+
+## Observabilidade
+
+- O backend emite logs estruturados em JSON com `python-json-logger`
+- Cada evento inclui `asctime`, `levelname`, `module` e `message`, o que facilita filtros no Grafana
+- O `docker compose` sobe `loki` e `promtail` junto com a aplicacao
+- O Promtail coleta logs dos containers `backend`, `frontend`, `postgres` e `chromadb` e envia ao Loki
+
+Fluxo rapido:
+
+```bash
+make up
+make logs-observability
+```

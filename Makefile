@@ -3,7 +3,7 @@
 # ==============================================================================
 # Herda a inteligência da Plataforma e garante chamadas centralizadas
 DEV_WORKSPACE ?= $(HOME)/dev-workspace
-.PHONY: help setup lint test build up down logs run-dev ports
+.PHONY: help setup lint test build up down logs logs-observability run-dev ports
 
 # Cores para output
 CYAN := \033[36m
@@ -60,6 +60,9 @@ down: ## Derruba a infraestrutura do MedTutor
 
 logs: ## Acompanha os logs contínuos dos containers
 	docker compose logs -f
+
+logs-observability: ## Acompanha apenas Loki, Promtail e backend
+	docker compose logs -f loki promtail backend
 
 test: ## Executa baterias de testes (Python via Docker e NPM local)
 	@echo "$(CYAN)Executando testes da aplicação...$(RESET)"
