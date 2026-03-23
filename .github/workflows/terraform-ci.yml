@@ -46,15 +46,15 @@ jobs:
         working-directory: ./aws/envs/dev
 
     env:
-      AWS_REGION: ${{ vars.TF_VAR_aws_region }}
+      AWS_REGION: ${{ vars.TF_VAR_AWS_REGION }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-      TF_VAR_aws_region: ${{ vars.TF_VAR_aws_region }}
-      TF_VAR_project_name: ${{ vars.TF_VAR_project_name }}
-      TF_VAR_environment: ${{ vars.TF_VAR_environment }}
-      TF_VAR_owner: ${{ vars.TF_VAR_owner }}
-      TF_VAR_ssh_allowed_cidr: ${{ vars.TF_VAR_ssh_allowed_cidr }}
-      TF_VAR_key_pair_name: ${{ vars.TF_VAR_key_pair_name }}
+      TF_VAR_aws_region: ${{ vars.TF_VAR_AWS_REGION }}
+      TF_VAR_project_name: ${{ vars.TF_VAR_PROJECT_NAME }}
+      TF_VAR_environment: ${{ vars.TF_VAR_ENVIRONMENT }}
+      TF_VAR_owner: ${{ vars.TF_VAR_OWNER }}
+      TF_VAR_ssh_allowed_cidr: ${{ vars.TF_VAR_SSH_ALLOWED_CIDR }}
+      TF_VAR_key_pair_name: ${{ vars.TF_VAR_KEY_PAIR_NAME }}
 
     steps:
       - name: Checkout do código
@@ -69,4 +69,4 @@ jobs:
         run: terraform init
 
       - name: Terraform Plan
-        run: terraform plan -input=false
+        run: terraform plan -input=false || (echo "Terraform plan failed with exit code $?"; exit 1)
