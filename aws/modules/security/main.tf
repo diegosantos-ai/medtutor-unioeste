@@ -8,18 +8,24 @@ terraform {
   }
 }
 
-resource "aws_security_group" "web" {
-  name        = "p02-dev-web-sg"
-  description = "Security group do servico web do projeto 02"
-  vpc_id      = var.vpc_id
-
-  tags = {
+locals {
+  name_prefix = "${var.project_name}-${var.environment}"
+  common_tags = {
     Project     = var.project_name
-    Name        = "p02-dev-web-sg"
     Environment = var.environment
     ManagedBy   = "Terraform"
     Owner       = var.owner
   }
+}
+
+resource "aws_security_group" "web" {
+  name        = "${local.name_prefix}-web-sg"
+  description = "Security group do servico web do projeto ${var.project_name}"
+  vpc_id      = var.vpc_id
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-web-sg"
+  })
 }
 
 resource "aws_vpc_security_group_ingress_rule" "web_http" {
@@ -29,13 +35,9 @@ resource "aws_vpc_security_group_ingress_rule" "web_http" {
   ip_protocol       = "tcp"
   to_port           = 80
 
-  tags = {
-    Project     = var.project_name
-    Name        = "p02-dev-web-sg-http"
-    Environment = var.environment
-    ManagedBy   = "Terraform"
-    Owner       = var.owner
-  }
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-web-sg-http"
+  })
 }
 
 resource "aws_vpc_security_group_ingress_rule" "web_ssh" {
@@ -45,13 +47,9 @@ resource "aws_vpc_security_group_ingress_rule" "web_ssh" {
   ip_protocol       = "tcp"
   to_port           = 22
 
-  tags = {
-    Project     = var.project_name
-    Name        = "p02-dev-web-sg-ssh"
-    Environment = var.environment
-    ManagedBy   = "Terraform"
-    Owner       = var.owner
-  }
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-web-sg-ssh"
+  })
 }
 
 resource "aws_vpc_security_group_egress_rule" "web_all_outbound" {
@@ -59,13 +57,9 @@ resource "aws_vpc_security_group_egress_rule" "web_all_outbound" {
   cidr_ipv4         = "0.0.0.0/0"
   ip_protocol       = "-1"
 
-  tags = {
-    Project     = var.project_name
-    Name        = "p02-dev-web-sg-egress"
-    Environment = var.environment
-    ManagedBy   = "Terraform"
-    Owner       = var.owner
-  }
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-web-sg-egress"
+  })
 }
 
 resource "aws_vpc_security_group_ingress_rule" "web_grafana" {
@@ -75,11 +69,7 @@ resource "aws_vpc_security_group_ingress_rule" "web_grafana" {
   ip_protocol       = "tcp"
   to_port           = 3000
 
-  tags = {
-    Project     = var.project_name
-    Name        = "p02-dev-web-sg-grafana"
-    Environment = var.environment
-    ManagedBy   = "Terraform"
-    Owner       = var.owner
-  }
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-web-sg-grafana"
+  })
 }

@@ -2,3 +2,7 @@ aws_region   = "us-east-1"
 project_name = "<NOME_DO_PROJETO>"
 environment  = "dev"
 owner        = "DiegoSantos"
+
+# Nao defina access_key ou secret_key aqui.
+# Use AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY e, quando necessario,
+# TF_VAR_project_name / TF_VAR_environment / TF_VAR_owner.

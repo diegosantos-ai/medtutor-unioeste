@@ -8,6 +8,16 @@ terraform {
   }
 }
 
+locals {
+  name_prefix = "${var.project_name}-${var.environment}"
+  common_tags = {
+    Project     = var.project_name
+    Environment = var.environment
+    ManagedBy   = "Terraform"
+    Owner       = var.owner
+  }
+}
+
 data "aws_ami" "amazon_linux" {
   most_recent = true
   owners      = ["amazon"]
@@ -63,11 +73,7 @@ resource "aws_instance" "web" {
               make up-prod
               EOF
 
-  tags = {
-    Name        = "p02-dev-ec2-web"
-    Project     = var.project_name
-    Environment = var.environment
-    ManagedBy   = "Terraform"
-    Owner       = var.owner
-  }
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-ec2-web"
+  })
 }

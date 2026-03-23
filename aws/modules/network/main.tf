@@ -8,18 +8,24 @@ terraform {
   }
 }
 
-resource "aws_vpc" "main" {
-  cidr_block           = var.vpc_cidr
-  enable_dns_support   = true
-  enable_dns_hostnames = true
-
-  tags = {
-    Name        = "p02-dev-vpc"
+locals {
+  name_prefix = "${var.project_name}-${var.environment}"
+  common_tags = {
     Project     = var.project_name
     Environment = var.environment
     ManagedBy   = "Terraform"
     Owner       = var.owner
   }
+}
+
+resource "aws_vpc" "main" {
+  cidr_block           = var.vpc_cidr
+  enable_dns_support   = true
+  enable_dns_hostnames = true
+
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-vpc"
+  })
 }
 
 resource "aws_subnet" "public" {
@@ -28,37 +34,25 @@ resource "aws_subnet" "public" {
   availability_zone       = var.public_subnet_az
   map_public_ip_on_launch = true
 
-  tags = {
-    Name        = "p02-dev-public-subnet"
-    Project     = var.project_name
-    Environment = var.environment
-    ManagedBy   = "Terraform"
-    Owner       = var.owner
-  }
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-public-subnet"
+  })
 }
 
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
-  tags = {
-    Name        = "p02-dev-igw"
-    Project     = var.project_name
-    Environment = var.environment
-    ManagedBy   = "Terraform"
-    Owner       = var.owner
-  }
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-igw"
+  })
 }
 
 resource "aws_route_table" "public" {
   vpc_id = aws_vpc.main.id
 
-  tags = {
-    Name        = "p02-dev-public-rt"
-    Project     = var.project_name
-    Environment = var.environment
-    ManagedBy   = "Terraform"
-    Owner       = var.owner
-  }
+  tags = merge(local.common_tags, {
+    Name = "${local.name_prefix}-public-rt"
+  })
 }
 
 resource "aws_route" "public_internet_access" {
