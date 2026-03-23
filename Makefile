@@ -141,22 +141,12 @@ logs-prod: ## Acompanha logs da stack de producao
 	./scripts/prod/compose.sh logs -f
 
 issue-prod-ssl: ## Emite certificado Lets Encrypt apos o DNS resolver para a instancia
-	DOMAIN_NAME="$${DOMAIN_NAME:?DOMAIN_NAME is required}" ./scripts/prod/ensure_runtime_dirs.sh
-	DOMAIN_NAME="$${DOMAIN_NAME:?DOMAIN_NAME is required}" \
-	LETSENCRYPT_EMAIL="$${LETSENCRYPT_EMAIL:?LETSENCRYPT_EMAIL is required}" \
-	./scripts/prod/compose.sh --profile certbot run --rm certbot certonly \
-		--webroot \
-		--webroot-path /var/www/certbot \
-		--email "$${LETSENCRYPT_EMAIL}" \
-		--agree-tos \
-		--no-eff-email \
-		--keep-until-expiring \
-		-d "$${DOMAIN_NAME}"
-	./scripts/prod/compose.sh exec frontend nginx -s reload
+	DOMAIN_NAME="$${DOMAIN_NAME:-}" \
+	LETSENCRYPT_EMAIL="$${LETSENCRYPT_EMAIL:-}" \
+	./scripts/prod/issue_ssl.sh
 
 renew-prod-ssl: ## Renova certificados Lets Encrypt e recarrega o Nginx
-	./scripts/prod/compose.sh --profile certbot run --rm certbot renew --webroot --webroot-path /var/www/certbot
-	./scripts/prod/compose.sh exec frontend nginx -s reload
+	./scripts/prod/renew_ssl.sh
 
 # ==========================================
 # 🤖 GESTÃO DE AGENTES & IA

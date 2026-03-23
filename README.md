@@ -161,6 +161,7 @@ PATH="$HOME/.local/bin:$PATH" pre-commit run --all-files
 - O dominio continua administrado na Vercel, mas o apontamento DNS deve ir para o Elastic IP da EC2
 - O HTTPS e emitido na propria instancia com Certbot
 - O Grafana continua ativo em producao, mas sem exposicao publica
+- O arquivo [aws/envs/prod/terraform.tfvars](/home/diego/labs/projects/medtutor-unioeste/aws/envs/prod/terraform.tfvars) ja traz os valores operacionais consolidados desta branch
 
 Fluxo recomendado para a primeira entrega:
 
@@ -172,7 +173,7 @@ make bootstrap-prod DOMAIN_NAME=demo.seu-dominio.com AWS_REGION=us-east-1 \
   GRAFANA_ADMIN_PASSWORD_SSM_PARAMETER=/medtutor/prod/grafana_admin_password \
   GEMINI_API_KEY_SSM_PARAMETER=/medtutor/prod/gemini_api_key \
   OPENAI_API_KEY_SSM_PARAMETER=/medtutor/prod/openai_api_key
-make issue-prod-ssl DOMAIN_NAME=demo.seu-dominio.com LETSENCRYPT_EMAIL=ops@seu-dominio.com
+make issue-prod-ssl
 ```
 
 ## Observabilidade
