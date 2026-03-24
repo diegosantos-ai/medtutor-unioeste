@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Target, Calendar, ChevronRight, BookOpen, UserCircle, GraduationCap } from 'lucide-react';
+import { Target, Calendar, ChevronRight, BookOpen, UserCircle, GraduationCap, AlertCircle } from 'lucide-react';
 
 interface Difficulty {
   subject: string;
@@ -21,18 +21,59 @@ const subjects = [
   'Geografia'
 ];
 
+const validateName = (name: string): string | null => {
+  const cleanName = name.trim();
+  
+  if (!cleanName || cleanName.length < 2) {
+    return 'Nome deve ter pelo menos 2 caracteres';
+  }
+  
+  if (/\s/.test(cleanName)) {
+    return 'Nome não pode conter espaços. Use apenas letras e números (ex: diego86)';
+  }
+  
+  if (!/[0-9]/.test(cleanName)) {
+    return 'Nome deve conter pelo menos 1 número (ex: diego86)';
+  }
+  
+  if (!/^[a-zA-Z][a-zA-Z0-9]*$/.test(cleanName)) {
+    return 'Nome deve começar com letra e conter apenas letras e números';
+  }
+  
+  return null;
+};
+
 export const StudyPlanConfig: React.FC<StudyPlanConfigProps> = ({ onSave }) => {
   const [name, setName] = useState('');
+  const [nameError, setNameError] = useState<string | null>(null);
   const [profileType, setProfileType] = useState('Estudando por conta propria');
   const [days, setDays] = useState(30);
   const [difficulties, setDifficulties] = useState<Difficulty[]>(subjects.map(subject => ({ subject, level: 'média' })));
+
+  const handleNameChange = (value: string) => {
+    setName(value);
+    if (value.trim()) {
+      const error = validateName(value);
+      setNameError(error);
+    } else {
+      setNameError(null);
+    }
+  };
 
   const handleLevelChange = (subject: string, level: Difficulty['level']) => {
     setDifficulties(prev => prev.map(d => d.subject === subject ? { ...d, level } : d));
   };
 
   const handleSave = () => {
-    if(!name.trim()) { alert("Por favor, preencha o seu nome"); return; }
+    const error = validateName(name);
+    if (error) {
+      setNameError(error);
+      return;
+    }
+    if (!name.trim()) { 
+      setNameError('Por favor, preencha o seu nome');
+      return; 
+    }
     onSave(days, difficulties, name, profileType);
   };
 
@@ -51,15 +92,36 @@ export const StudyPlanConfig: React.FC<StudyPlanConfigProps> = ({ onSave }) => {
           <div>
             <label className="flex items-center gap-2 text-sm font-bold text-zinc-800 mb-2">
               <UserCircle className="w-5 h-5 text-emerald-500" />
-              Seu Nome Completo
+              Seu Nome de Usuário
             </label>
             <input
               type="text"
-              placeholder="Seu nome aqui"
+              placeholder="Ex: diego86"
               value={name}
-              onChange={e => setName(e.target.value)}
-              className="w-full bg-zinc-50 border border-zinc-200 rounded-xl px-4 py-3 outline-none focus:ring-2 focus:ring-emerald-500 text-zinc-800 font-medium"
+              onChange={e => handleNameChange(e.target.value)}
+              className={`w-full bg-zinc-50 border rounded-xl px-4 py-3 outline-none focus:ring-2 text-zinc-800 font-medium transition-colors ${
+                nameError 
+                  ? 'border-rose-400 focus:ring-rose-300' 
+                  : name.trim() && !validateName(name) 
+                    ? 'border-emerald-400 focus:ring-emerald-300' 
+                    : 'border-zinc-200 focus:ring-emerald-500'
+              }`}
             />
+            {nameError ? (
+              <div className="flex items-center gap-2 mt-2 text-rose-500 text-sm">
+                <AlertCircle className="w-4 h-4 shrink-0" />
+                <span>{nameError}</span>
+              </div>
+            ) : name.trim() && !validateName(name) ? (
+              <div className="flex items-center gap-2 mt-2 text-emerald-500 text-sm">
+                <span className="w-4 h-4 shrink-0">✓</span>
+                <span>Nome válido: {name.toLowerCase()}</span>
+              </div>
+            ) : (
+              <p className="mt-2 text-zinc-500 text-sm">
+                Sem espaços, pelo menos 1 número (ex: maria92)
+              </p>
+            )}
           </div>
           <div>
             <label className="flex items-center gap-2 text-sm font-bold text-zinc-800 mb-2">

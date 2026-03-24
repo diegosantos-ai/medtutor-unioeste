@@ -1,5 +1,23 @@
-import React from 'react';
-import { Home, Calendar, RefreshCw, Clock, Target, Zap } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Home, Calendar, RefreshCw, Clock, Target, Zap, Loader2 } from 'lucide-react';
+import { apiClient } from '../components/api/apiClient';
+
+interface ProgressData {
+  user_id: string;
+  current_day: number;
+  total_days: number;
+  progress_percent: number;
+  days_completed: number;
+  days_remaining: number;
+  accuracy: number;
+  streak: number;
+  total_flashcards: number;
+  flashcards_reviewed_today: number;
+  total_questions: number;
+  correct_answers: number;
+  study_sessions_today: number;
+  hours_studied_today: number;
+}
 
 interface TodayPageProps {
   userName?: string;
@@ -10,11 +28,56 @@ interface TodayPageProps {
 
 export const TodayPage: React.FC<TodayPageProps> = ({
   userName = 'Aluno',
-  currentDay = 1,
-  totalDays = 30,
   onStartSession
 }) => {
-  const progress = Math.round((currentDay / totalDays) * 100);
+  const [progress, setProgress] = useState<ProgressData | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchProgress = async () => {
+      try {
+        const data = await apiClient.get<ProgressData>('/progress');
+        setProgress(data);
+      } catch (err) {
+        console.error('Failed to fetch progress:', err);
+        setError('Erro ao carregar progresso');
+        setProgress({
+          user_id: '',
+          current_day: 1,
+          total_days: 30,
+          progress_percent: 3,
+          days_completed: 0,
+          days_remaining: 29,
+          accuracy: 0,
+          streak: 0,
+          total_flashcards: 12,
+          flashcards_reviewed_today: 0,
+          total_questions: 0,
+          correct_answers: 0,
+          study_sessions_today: 0,
+          hours_studied_today: 0,
+        });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProgress();
+  }, []);
+
+  if (loading) {
+    return (
+      <div className="max-w-4xl mx-auto p-6 flex items-center justify-center h-64">
+        <Loader2 className="w-8 h-8 animate-spin text-emerald-500" />
+        <span className="ml-3 text-zinc-500">Carregando progresso...</span>
+      </div>
+    );
+  }
+
+  const currentDay = progress?.current_day || 1;
+  const totalDays = progress?.total_days || 30;
+  const progressPercent = Math.round((currentDay / totalDays) * 100);
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -37,7 +100,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({
             </div>
             <div>
               <p className="text-emerald-100 text-sm font-medium">Progresso do Plano</p>
-              <p className="text-2xl font-bold">{progress}%</p>
+              <p className="text-2xl font-bold">{progressPercent}%</p>
             </div>
           </div>
           <div className="text-right">
@@ -48,7 +111,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({
         <div className="w-full bg-white/20 rounded-full h-3">
           <div
             className="bg-white rounded-full h-3 transition-all duration-500"
-            style={{ width: `${progress}%` }}
+            style={{ width: `${progressPercent}%` }}
           />
         </div>
       </div>
@@ -83,7 +146,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({
             <RefreshCw className="w-5 h-5" />
           </div>
           <p className="font-semibold text-zinc-900">Revisar Erradas</p>
-          <p className="text-sm text-zinc-500">3 questões pendentes</p>
+          <p className="text-sm text-zinc-500">{progress?.total_questions || 0} questões pendentes</p>
         </div>
 
         <div className="bg-white rounded-xl p-4 border border-zinc-100 shadow-sm hover:shadow-md transition-shadow cursor-pointer">
@@ -91,7 +154,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({
             <Calendar className="w-5 h-5" />
           </div>
           <p className="font-semibold text-zinc-900">Flashcards</p>
-          <p className="text-sm text-zinc-500">12 cartões para revisar</p>
+          <p className="text-sm text-zinc-500">{progress?.flashcards_reviewed_today || 0} cartões para revisar</p>
         </div>
       </div>
 
@@ -100,15 +163,15 @@ export const TodayPage: React.FC<TodayPageProps> = ({
         <h3 className="font-bold text-zinc-900 mb-4">Resumo da Semana</h3>
         <div className="grid grid-cols-3 gap-4 text-center">
           <div>
-            <p className="text-2xl font-bold text-emerald-600">5</p>
+            <p className="text-2xl font-bold text-emerald-600">{progress?.study_sessions_today || 0}</p>
             <p className="text-sm text-zinc-500">Sessões</p>
           </div>
           <div>
-            <p className="text-2xl font-bold text-amber-600">78%</p>
+            <p className="text-2xl font-bold text-amber-600">{progress?.accuracy || 0}%</p>
             <p className="text-sm text-zinc-500">Taxa de Acerto</p>
           </div>
           <div>
-            <p className="text-2xl font-bold text-blue-600">3.2h</p>
+            <p className="text-2xl font-bold text-blue-600">{progress?.hours_studied_today || 0}h</p>
             <p className="text-sm text-zinc-500">Estudadas</p>
           </div>
         </div>

@@ -1,10 +1,21 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Send, Bot, User, Loader2, Sparkles } from 'lucide-react';
+import { Send, Bot, User, Loader2, Sparkles, Trash2 } from 'lucide-react';
+import { apiClient } from '../components/api/apiClient';
 
 interface Message {
+  id?: number;
   role: 'user' | 'bot';
   text: string;
   timestamp: number;
+  sources?: any[];
+}
+
+interface ChatHistoryItem {
+  id: number;
+  role: string;
+  text: string;
+  timestamp: string;
+  sources?: any[];
 }
 
 interface TutorPageProps {
@@ -16,48 +27,117 @@ export const TutorPage: React.FC<TutorPageProps> = ({
   userName = 'Aluno',
   currentTopic = 'Sistema Respiratório'
 }) => {
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      role: 'bot',
-      text: `Olá, ${userName}! Sou seu Tutor IA para o vestibular de Medicina da UNIOESTE.\n\nEstou vendo que você está estudando **${currentTopic}**. Posso ajudar com explicações, exercícios, comparações de conceitos e tirar dúvidas específicas.\n\nSobre o que quer perguntar?`,
-      timestamp: Date.now()
-    }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    loadChatHistory();
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
+  const loadChatHistory = async () => {
+    try {
+      const history = await apiClient.get<any>('/chat/history');
+      if (history.messages && history.messages.length > 0) {
+        const loadedMessages: Message[] = history.messages.map((m: ChatHistoryItem) => ({
+          id: m.id,
+          role: m.role as 'user' | 'bot',
+          text: m.text,
+          timestamp: new Date(m.timestamp).getTime(),
+          sources: m.sources
+        }));
+        setMessages(loadedMessages);
+      } else {
+        setMessages([{
+          role: 'bot',
+          text: `Olá, ${userName}! Sou seu Tutor IA para o vestibular de Medicina da UNIOESTE.\n\nEstou vendo que você está estudando **${currentTopic}**. Posso ajudar com explicações, exercícios, comparações de conceitos e tirar dúvidas específicas.\n\nSobre o que quer perguntar?`,
+          timestamp: Date.now()
+        }]);
+      }
+    } catch (err) {
+      console.error('Failed to load chat history:', err);
+      setMessages([{
+        role: 'bot',
+        text: `Olá, ${userName}! Sou seu Tutor IA para o vestibular de Medicina da UNIOESTE.\n\nSobre o que quer perguntar?`,
+        timestamp: Date.now()
+      }]);
+    }
+  };
+
   const handleSend = async () => {
     if (!input.trim() || loading) return;
 
+    setError(null);
     const userMsg: Message = { role: 'user', text: input, timestamp: Date.now() };
     setMessages(prev => [...prev, userMsg]);
     setInput('');
     setLoading(true);
 
-    // Simulate bot response (replace with actual API call)
-    setTimeout(() => {
+    try {
+      const history = messages.map(m => ({ role: m.role, text: m.text }));
+      const response = await apiClient.post<any>('/chat/tutor', {
+        query: input,
+        profile: { name: userName },
+        history: history
+      });
+
       const botMsg: Message = {
         role: 'bot',
-        text: 'Esta é uma resposta simulada do tutor. Em breve integraré com a API de IA com contexto da sessão.',
-        timestamp: Date.now()
+        text: response.text || 'Desculpe, não consegui processar sua mensagem.',
+        timestamp: Date.now(),
+        sources: response.sources
       };
       setMessages(prev => [...prev, botMsg]);
+    } catch (err: any) {
+      console.error('Chat error:', err);
+      setError(err.message || 'Erro ao enviar mensagem');
+      setMessages(prev => [...prev, {
+        role: 'bot',
+        text: 'Desculpe, tive um problema ao processar sua mensagem. Tente novamente.',
+        timestamp: Date.now()
+      }]);
+    } finally {
       setLoading(false);
-    }, 1500);
+    }
+  };
+
+  const handleClearHistory = async () => {
+    if (!confirm('Limpar todo o histórico de chat?')) return;
+
+    try {
+      await apiClient.delete('/chat/history');
+      setMessages([{
+        role: 'bot',
+        text: `Olá, ${userName}! Histórico limpo. Sobre o que quer perguntar?`,
+        timestamp: Date.now()
+      }]);
+    } catch (err) {
+      console.error('Failed to clear history:', err);
+    }
   };
 
   return (
     <div className="h-full flex flex-col max-w-4xl mx-auto p-6">
-      <div className="mb-6">
-        <h1 className="text-3xl font-bold text-zinc-900">Tutor IA</h1>
-        <p className="text-zinc-500 mt-1">
-          Tire suas dúvidas sobre qualquer tema do vestibular
-        </p>
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-3xl font-bold text-zinc-900">Tutor IA</h1>
+          <p className="text-zinc-500 mt-1">
+            Tire suas dúvidas sobre qualquer tema do vestibular
+          </p>
+        </div>
+        <button
+          onClick={handleClearHistory}
+          className="p-2 text-zinc-400 hover:text-rose-500 hover:bg-rose-50 rounded-lg transition-colors"
+          title="Limpar histórico"
+        >
+          <Trash2 className="w-5 h-5" />
+        </button>
       </div>
 
       {/* Context Card */}
@@ -72,6 +152,13 @@ export const TutorPage: React.FC<TutorPageProps> = ({
           </div>
         </div>
       </div>
+
+      {/* Error Message */}
+      {error && (
+        <div className="bg-rose-50 border border-rose-200 text-rose-700 px-4 py-2 rounded-lg mb-4 text-sm">
+          {error}
+        </div>
+      )}
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto space-y-4 mb-4">
