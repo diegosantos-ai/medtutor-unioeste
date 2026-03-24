@@ -13,8 +13,8 @@ import { TourTip } from './components/TourTip';
 import { LogViewer } from './components/LogViewer/LogViewer';
 import { logger } from './utils/logger';
 import { LayoutDashboard, GraduationCap, MessageSquare, Archive, LogOut, Activity, Clock, Layers, FileQuestion, BookX, Lightbulb } from 'lucide-react';
-import { authApi } from './components/api/authApi';
 import { apiClient } from './components/api/apiClient';
+import { getOrCreateSessionId, getSessionData, setSessionData, clearSession } from './utils/session';
 
 const App: React.FC = () => {
   const [days, setDays] = useState(30);
@@ -35,31 +35,32 @@ const App: React.FC = () => {
 
   // Load Session if exists
   React.useEffect(() => {
-    const saved = localStorage.getItem('medtutor_session');
-    if (saved) {
-      try {
-        const data = JSON.parse(saved);
-        if (data.matricula) {
-          setMatricula(data.matricula);
-          setDays(data.days);
-          setCurrentDay(data.currentDay);
-          setStudentInfo(data.studentInfo);
-          setPlan(data.plan);
-          setDifficulties(data.difficulties || []);
-          if (data.showTour !== undefined) setShowTour(data.showTour);
-        }
-      } catch (e) {
-        console.error("Failed to load session", e);
+    const savedSession = getSessionData();
+    if (savedSession) {
+      setStudentInfo({ name: savedSession.name, profile: 'Ciclo' });
+      setDays(savedSession.days || 30);
+      setDifficulties(savedSession.difficulties || []);
+      if (savedSession.showTour !== undefined) setShowTour(savedSession.showTour);
+      
+      // Try to restore token if exists
+      const token = localStorage.getItem('medtutor_token');
+      if (token) {
+        apiClient.setToken(token);
       }
     }
   }, []);
 
-  // Save changes to localStorage seamlessly
+  // Save changes to session data seamlessly
   React.useEffect(() => {
-    if (matricula && studentInfo && plan) {
-      localStorage.setItem('medtutor_session', JSON.stringify({
-        matricula, days, currentDay, studentInfo, plan, difficulties, showTour
-      }));
+    if (studentInfo && plan) {
+      setSessionData({
+        sessionId: getOrCreateSessionId(),
+        name: studentInfo.name,
+        days,
+        currentDay,
+        difficulties,
+        showTour
+      });
     }
   }, [matricula, days, currentDay, studentInfo, plan, difficulties, showTour]);
 
@@ -104,46 +105,55 @@ const App: React.FC = () => {
 
     setPlan({ loading: true });
 
-    try {
-      // 1. Tentar login ou registro automático para isolar o usuário
-      // Usamos o nome como email simbólico para este MVP de login simples
-      const email = `${name.toLowerCase().replace(/\s+/g, '.')}@medtutor.com`;
-      const password = 'password123'; // Senha padrão para login simplificado
+    // Get or create unique session ID
+    const sessionId = getOrCreateSessionId();
+    
+    // Save session data
+    setSessionData({
+      sessionId,
+      name,
+      days: daysConfig,
+      difficulties: diffConfig,
+      createdAt: new Date().toISOString()
+    });
 
-      let authResponse;
+    try {
+      // Create or login user with session-based credentials
+      const email = `${sessionId}@medtutor.local`;
+      const password = sessionId;
+
+      let token: string;
       try {
-        authResponse = await authApi.login({ email, password });
-      } catch (e) {
-        // Se falhar login, tenta registrar
-        authResponse = await authApi.register({ email, password, name });
+        const loginResponse = await apiClient.post<{ access_token: string }>('/auth/login', {
+          email,
+          password
+        });
+        token = loginResponse.access_token;
+      } catch {
+        // If login fails, register
+        const registerResponse = await apiClient.post<{ access_token: string }>('/auth/register', {
+          email,
+          password,
+          name
+        });
+        token = registerResponse.access_token;
       }
 
-      const token = authResponse.access_token;
       apiClient.setToken(token);
       localStorage.setItem('medtutor_token', token);
 
-      // 2. Chamar API de plano autenticada
-      const res = await fetch('/api/ai', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({
-          action: 'plan',
-          payload: {
-            days: daysConfig,
-            difficulties: diffConfig,
-            name: name,
-            profile: profile
-          }
-        })
+      // Call API to generate study plan
+      const res = await apiClient.post('/study-plan', {
+        profile: {
+          days: daysConfig,
+          difficulties: diffConfig,
+          name: name,
+          profile: profile
+        }
       });
-
-      if (!res.ok) throw new Error('Falha ao gerar plano');
-
-      const data = await res.json();
-      setPlan(data.text ? JSON.parse(data.text) : data);
+      
+      const planData = (res as any).text ? JSON.parse((res as any).text) : res;
+      setPlan(planData);
     } catch (error) {
       console.error(error);
       // Fallback: gera plano basico local para cada dia com as materias do aluno
@@ -221,7 +231,8 @@ const App: React.FC = () => {
   };
 
   const handleLogout = () => {
-    authApi.logout();
+    clearSession();
+    apiClient.setToken(null);
     window.location.reload();
   };
 
