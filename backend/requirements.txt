@@ -20,3 +20,4 @@ pypdf
 python-json-logger>=2.0.7
 prometheus-fastapi-instrumentator>=6.1.1
 tenacity>=8.2.3
+requests>=2.31.0
