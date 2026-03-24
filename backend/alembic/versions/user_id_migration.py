@@ -1,7 +1,7 @@
 """user_id migration - mark current schema as migrated
 
 Revision ID: user_id_migration
-Revises: 143a35ac668d
+Revises: add_auth_fields, 143a35ac668d
 Create Date: 2026-03-24
 
 Note: Tables already exist with user_id as PK.
@@ -15,7 +15,7 @@ import sqlalchemy as sa
 
 
 revision: str = "user_id_migration"
-down_revision: Union[str, Sequence[str], None] = "143a35ac668d"
+down_revision: Union[str, Sequence[str], None] = ("add_auth_fields", "143a35ac668d")
 branch_labels: Union[str, Sequence[str], None] = None
 depends_on: Union[str, Sequence[str], None] = None
 
