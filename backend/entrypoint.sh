@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-set -e
 
 DB_WAIT_TIMEOUT="${DB_WAIT_TIMEOUT:-60}"
 
@@ -11,7 +10,7 @@ log_json() {
   timestamp="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
   message="${message//\\/\\\\}"
   message="${message//\"/\\\"}"
-  message="${message//$'\n'/ }"
+  message="${message//$'\\n'/ }"
   printf '{"asctime":"%s","levelname":"%s","module":"entrypoint","message":"%s"}\n' \
     "$timestamp" \
     "$level" \
@@ -44,6 +43,29 @@ else:
 PY
 
 log_json "INFO" "Banco de dados disponivel"
-log_json "INFO" "Skipping alembic migrations (tables already exist with user_id PK)"
+
+log_json "INFO" "Executando migrations do banco de dados"
+if alembic_output="$(alembic upgrade head 2>&1)"; then
+  if [ -n "$alembic_output" ]; then
+    while IFS= read -r line; do
+      log_json "INFO" "$line"
+    done <<<"$alembic_output"
+  fi
+  log_json "INFO" "Migrations executadas com sucesso"
+else
+  alembic_status=$?
+  while IFS= read -r line; do
+    log_json "WARN" "Alembic migration warning: $line"
+  done <<<"$alembic_output"
+  
+  if echo "$alembic_output" | grep -q "Multiple head revisions"; then
+    log_json "WARN" "Multiple head revisions detected - skipping migrations"
+  elif echo "$alembic_output" | grep -q "Can't locate revision"; then
+    log_json "WARN" "Missing revision detected - skipping migrations"
+  else
+    log_json "ERROR" "Alembic migration failed: $alembic_output"
+  fi
+fi
+
 log_json "INFO" "Iniciando servidor API com Uvicorn"
 exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT:-8000}"
