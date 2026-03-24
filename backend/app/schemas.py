@@ -145,3 +145,35 @@ class ChatHistoryResponse(BaseModel):
     messages: List[ChatHistoryItem]
     created_at: datetime
     last_active: datetime
+
+
+class SubjectProgress(BaseModel):
+    id: str
+    name: str
+    icon: str
+    total_questions: int
+    answered_questions: int
+    correct_answers: int
+    accuracy: float
+    progress: int
+
+
+class TrailsResponse(BaseModel):
+    subjects: List[SubjectProgress]
+    focus_subject: Optional[str] = None
+    focus_tip: Optional[str] = None
+
+
+class QuestionResponse(BaseModel):
+    id: str
+    subject: str
+    topic: str
+    difficulty: str
+    status: Optional[str] = None
+    enunciado: str
+
+
+class QuestionsResponse(BaseModel):
+    questions: List[QuestionResponse]
+    total: int
+    by_status: Dict[str, int]

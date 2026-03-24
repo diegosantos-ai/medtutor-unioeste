@@ -26,6 +26,10 @@ from app.schemas import (
     ProgressResponse,
     ChatHistoryResponse,
     ChatHistoryItem,
+    TrailsResponse,
+    SubjectProgress,
+    QuestionsResponse,
+    QuestionResponse,
 )
 from app.rag_service import rag_db
 import os
@@ -742,3 +746,194 @@ def ingest_all_pdfs(payload: dict = None):
     folder = payload.get("folder") if payload else None
     results = rag_db.ingest_folder(folder)
     return results
+
+
+# ============================================================================
+# TRAILS (SUBJECTS) ENDPOINTS
+# ============================================================================
+
+
+@router.get("/trails", response_model=TrailsResponse)
+def get_trails(
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    subjects_data = [
+        {"id": "biologia", "name": "Biologia", "icon": "brain"},
+        {"id": "quimica", "name": "Química", "icon": "book"},
+        {"id": "fisica", "name": "Física", "icon": "target"},
+        {"id": "portugues", "name": "Português", "icon": "file"},
+        {"id": "matematica", "name": "Matemática", "icon": "calculator"},
+        {"id": "historia", "name": "História", "icon": "clock"},
+        {"id": "geografia", "name": "Geografia", "icon": "globe"},
+    ]
+
+    subjects = []
+    for subj in subjects_data:
+        total_q = (
+            db.query(models.Question)
+            .filter(
+                models.Question.materia.ilike(f"%{subj['name']}%"),
+                models.Question.vestibular == "UNIOESTE",
+            )
+            .count()
+        )
+
+        answered = (
+            db.query(models.UserInteraction)
+            .join(models.Question, models.UserInteraction.question_id == models.Question.id)
+            .filter(
+                models.UserInteraction.user_id == current_user.user_id,
+                models.Question.materia.ilike(f"%{subj['name']}%"),
+            )
+            .count()
+        )
+
+        correct = (
+            db.query(models.UserInteraction)
+            .join(models.Question, models.UserInteraction.question_id == models.Question.id)
+            .filter(
+                models.UserInteraction.user_id == current_user.user_id,
+                models.Question.materia.ilike(f"%{subj['name']}%"),
+                models.UserInteraction.status == "acertou",
+            )
+            .count()
+        )
+
+        accuracy = round((correct / answered * 100), 1) if answered > 0 else 0.0
+        progress = min(100, answered * 5) if total_q > 0 else 0
+
+        subjects.append(
+            SubjectProgress(
+                id=subj["id"],
+                name=subj["name"],
+                icon=subj["icon"],
+                total_questions=total_q,
+                answered_questions=answered,
+                correct_answers=correct,
+                accuracy=accuracy,
+                progress=progress,
+            )
+        )
+
+    subjects.sort(key=lambda x: x.accuracy, reverse=True)
+
+    focus_subject = subjects[0].name if subjects else None
+    focus_tip = None
+    if focus_subject:
+        focus_tip = f"Continue estudando {focus_subject} para melhorar ainda mais sua média!"
+
+    return TrailsResponse(
+        subjects=subjects,
+        focus_subject=focus_subject,
+        focus_tip=focus_tip,
+    )
+
+
+# ============================================================================
+# QUESTIONS ENDPOINTS
+# ============================================================================
+
+
+@router.get("/questions", response_model=QuestionsResponse)
+def get_questions(
+    subject: str = "",
+    difficulty: str = "",
+    status_filter: str = "",
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    query = (
+        db.query(models.Question, models.UserInteraction)
+        .outerjoin(
+            models.UserInteraction,
+            (models.UserInteraction.question_id == models.Question.id)
+            & (models.UserInteraction.user_id == current_user.user_id),
+        )
+        .filter(models.Question.vestibular == "UNIOESTE")
+    )
+
+    if subject:
+        query = query.filter(models.Question.materia.ilike(f"%{subject}%"))
+
+    if difficulty:
+        query = query.filter(models.Question.dificuldade == difficulty)
+
+    results = query.order_by(models.Question.materia).limit(50).all()
+
+    questions = []
+    by_status = {"correct": 0, "incorrect": 0, "not_started": 0}
+
+    for question, interaction in results:
+        status = None
+        if interaction:
+            status = "correct" if interaction.status == "acertou" else "incorrect"
+            by_status[status] += 1
+        else:
+            by_status["not_started"] += 1
+
+        if status_filter and status != status_filter:
+            continue
+
+        questions.append(
+            QuestionResponse(
+                id=question.id,
+                subject=str(question.materia),
+                topic=str(question.assunto),
+                difficulty=str(question.dificuldade),
+                status=status,
+                enunciado=str(question.enunciado)[:150] + "...",
+            )
+        )
+
+    return QuestionsResponse(
+        questions=questions,
+        total=len(questions),
+        by_status=by_status,
+    )
+
+
+@router.post("/questions/{question_id}/answer")
+def answer_question(
+    question_id: str,
+    payload: dict,
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    answer = payload.get("answer", "").upper()
+
+    question = db.query(models.Question).filter(models.Question.id == question_id).first()
+
+    if not question:
+        raise HTTPException(status_code=404, detail="Questão não encontrada")
+
+    is_correct = answer == str(question.resposta_correta).upper()
+
+    existing = (
+        db.query(models.UserInteraction)
+        .filter(
+            models.UserInteraction.user_id == current_user.user_id,
+            models.UserInteraction.question_id == question_id,
+        )
+        .first()
+    )
+
+    if existing:
+        existing.status = "acertou" if is_correct else "errou"
+    else:
+        interaction = models.UserInteraction(
+            user_id=current_user.user_id,
+            question_id=question_id,
+            status="acertou" if is_correct else "errou",
+            tempo_resposta=payload.get("time", 0),
+        )
+        db.add(interaction)
+
+    db.commit()
+
+    return {
+        "correct": is_correct,
+        "your_answer": answer,
+        "correct_answer": question.resposta_correta,
+        "explanation": question.resolucao_base or "Sem explicação disponível",
+    }
