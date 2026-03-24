@@ -41,3 +41,5 @@ backend/app/chroma_data/
 .env*.local
 teste-python/.venv/
 .runtime/
+DEPLOY_GUIDE.md
+ovh/DEPLOY_OVH.md
