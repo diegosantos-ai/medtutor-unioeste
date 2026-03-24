@@ -44,19 +44,6 @@ else:
 PY
 
 log_json "INFO" "Banco de dados disponivel"
-log_json "INFO" "Iniciando processo de provisionamento do banco de dados"
-if alembic_output="$(alembic upgrade head 2>&1)"; then
-  if [ -n "$alembic_output" ]; then
-    while IFS= read -r line; do
-      log_json "INFO" "$line"
-    done <<<"$alembic_output"
-  fi
-else
-  while IFS= read -r line; do
-    log_json "ERROR" "$line"
-  done <<<"$alembic_output"
-  exit 1
-fi
-
+log_json "INFO" "Skipping alembic migrations (tables already exist with user_id PK)"
 log_json "INFO" "Iniciando servidor API com Uvicorn"
 exec uvicorn app.main:app --host 0.0.0.0 --port "${PORT:-8000}"
