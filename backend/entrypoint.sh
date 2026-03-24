@@ -57,7 +57,7 @@ else
   while IFS= read -r line; do
     log_json "WARN" "Alembic migration warning: $line"
   done <<<"$alembic_output"
-  
+
   if echo "$alembic_output" | grep -q "Multiple head revisions"; then
     log_json "WARN" "Multiple head revisions detected - skipping migrations"
   elif echo "$alembic_output" | grep -q "Can't locate revision"; then

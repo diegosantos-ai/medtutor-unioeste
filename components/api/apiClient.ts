@@ -94,11 +94,11 @@ class ApiClient {
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         let errorMessage = errorData.detail || errorData.message || `Erro ${response.status}: ${response.statusText}`;
-        
+
         if (typeof errorMessage === 'object') {
           errorMessage = JSON.stringify(errorMessage);
         }
-        
+
         const error: ApiError = new Error(errorMessage);
         error.status = response.status;
         error.data = errorData;

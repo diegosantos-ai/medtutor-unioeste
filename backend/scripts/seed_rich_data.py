@@ -118,7 +118,7 @@ def seed_rich_data():
                 },
                 "resposta_correta": "C",
                 "resolucao_base": "Na transformação adiabática (Q=0), não há troca de calor. Quando o gás é comprimido (Trabalho negativo), a variação de energia interna é positiva (ΔU = -W), logo a temperatura aumenta."
-            },            
+            },
             {
                 "id": "UNIOESTE-FIS-002",
                 "vestibular": "UNIOESTE",

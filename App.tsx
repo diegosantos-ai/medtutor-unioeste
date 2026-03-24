@@ -431,7 +431,7 @@ const App: React.FC = () => {
               ],
               summary: `Resumo do dia ${i + 1}: ${subjects[i % subjects.length]} e ${subjects[(i + 1) % subjects.length]}`
             }));
-            
+
             setState(prev => ({ ...prev, days: daysConfig, difficulties: diffConfig, studentInfo: { name, profile }, plan: { days: daysConfig, schedule }, matricula: newMatricula }));
           } catch (error) {
             console.error('Erro geral ao logar:', error);

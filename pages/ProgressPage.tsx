@@ -44,7 +44,7 @@ export const ProgressPage: React.FC = () => {
         apiClient.get<{subjects: any[]}>('/trails').catch(() => ({ subjects: [] }))
       ]);
       setProgress(progData);
-      
+
       const colors = ['bg-emerald-500', 'bg-blue-500', 'bg-amber-500', 'bg-rose-500', 'bg-purple-500'];
       const mappedSubjects = (trailsData.subjects || []).map((s: any, idx: number) => ({
         name: s.name,

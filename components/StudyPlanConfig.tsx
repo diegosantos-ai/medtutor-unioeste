@@ -23,23 +23,23 @@ const subjects = [
 
 const validateName = (name: string): string | null => {
   const cleanName = name.trim();
-  
+
   if (!cleanName || cleanName.length < 2) {
     return 'Nome deve ter pelo menos 2 caracteres';
   }
-  
+
   if (/\s/.test(cleanName)) {
     return 'Nome não pode conter espaços. Use apenas letras e números (ex: diego86)';
   }
-  
+
   if (!/[0-9]/.test(cleanName)) {
     return 'Nome deve conter pelo menos 1 número (ex: diego86)';
   }
-  
+
   if (!/^[a-zA-Z][a-zA-Z0-9]*$/.test(cleanName)) {
     return 'Nome deve começar com letra e conter apenas letras e números';
   }
-  
+
   return null;
 };
 
@@ -70,9 +70,9 @@ export const StudyPlanConfig: React.FC<StudyPlanConfigProps> = ({ onSave }) => {
       setNameError(error);
       return;
     }
-    if (!name.trim()) { 
+    if (!name.trim()) {
       setNameError('Por favor, preencha o seu nome');
-      return; 
+      return;
     }
     onSave(days, difficulties, name, profileType);
   };
@@ -100,10 +100,10 @@ export const StudyPlanConfig: React.FC<StudyPlanConfigProps> = ({ onSave }) => {
               value={name}
               onChange={e => handleNameChange(e.target.value)}
               className={`w-full bg-zinc-50 border rounded-xl px-4 py-3 outline-none focus:ring-2 text-zinc-800 font-medium transition-colors ${
-                nameError 
-                  ? 'border-rose-400 focus:ring-rose-300' 
-                  : name.trim() && !validateName(name) 
-                    ? 'border-emerald-400 focus:ring-emerald-300' 
+                nameError
+                  ? 'border-rose-400 focus:ring-rose-300'
+                  : name.trim() && !validateName(name)
+                    ? 'border-emerald-400 focus:ring-emerald-300'
                     : 'border-zinc-200 focus:ring-emerald-500'
               }`}
             />
