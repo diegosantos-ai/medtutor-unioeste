@@ -46,7 +46,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({
           </div>
         </div>
         <div className="w-full bg-white/20 rounded-full h-3">
-          <div 
+          <div
             className="bg-white rounded-full h-3 transition-all duration-500"
             style={{ width: `${progress}%` }}
           />
@@ -56,7 +56,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({
       {/* Main Action */}
       <div className="bg-white rounded-2xl p-6 border border-zinc-100 shadow-sm mb-6">
         <h2 className="text-lg font-bold text-zinc-900 mb-4">Sessão de Hoje</h2>
-        
+
         <div className="flex items-center gap-4 mb-4">
           <div className="w-12 h-12 bg-amber-100 text-amber-600 rounded-xl flex items-center justify-center">
             <Clock className="w-6 h-6" />

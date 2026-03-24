@@ -83,8 +83,8 @@ export const TutorPage: React.FC<TutorPageProps> = ({
               {msg.role === 'bot' ? <Bot className="w-5 h-5" /> : <User className="w-5 h-5" />}
             </div>
             <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${
-              msg.role === 'bot' 
-                ? 'bg-zinc-100 text-zinc-800' 
+              msg.role === 'bot'
+                ? 'bg-zinc-100 text-zinc-800'
                 : 'bg-zinc-900 text-white'
             }`}>
               <p className="whitespace-pre-wrap">{msg.text}</p>

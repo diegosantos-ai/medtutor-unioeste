@@ -45,7 +45,7 @@ class RAGService:
                 return
             except Exception as e:
                 logger.warning(f"Failed to init OpenRouter embeddings: {e}")
-        
+
         # Fallback to Gemini if OpenRouter not configured
         try:
             from langchain_google_genai import GoogleGenerativeAIEmbeddings
@@ -59,7 +59,7 @@ class RAGService:
                 return
         except Exception as e:
             logger.warning(f"Failed to init Gemini embeddings: {e}")
-        
+
         logger.warning("No embeddings configured. RAG will be disabled.")
 
     def _load_vectorstore(self):

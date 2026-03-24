@@ -117,12 +117,12 @@ export const generateSummary = async (
     const data = await callBackendApi('/summary', { subject, topic });
     // Backend returns { text: { title, subject, content, prerequisites, examples, externalLinks } }
     const content = data.text;
-    
+
     // If backend returns error structure, throw with readable message
     if (content && content.ok === false) {
       throw new Error(content.message || 'Erro ao gerar conteúdo de estudo.');
     }
-    
+
     // Return the content as-is (matches ContentResource type)
     return content;
   } catch (error) {

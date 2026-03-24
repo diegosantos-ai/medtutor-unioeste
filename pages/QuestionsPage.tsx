@@ -20,8 +20,8 @@ const questions: Question[] = [
 export const QuestionsPage: React.FC = () => {
   const [filter, setFilter] = React.useState<string>('all');
 
-  const filteredQuestions = filter === 'all' 
-    ? questions 
+  const filteredQuestions = filter === 'all'
+    ? questions
     : questions.filter(q => q.status === filter);
 
   const getDifficultyColor = (difficulty: string) => {
@@ -47,8 +47,8 @@ export const QuestionsPage: React.FC = () => {
         <button
           onClick={() => setFilter('all')}
           className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-colors ${
-            filter === 'all' 
-              ? 'bg-zinc-900 text-white' 
+            filter === 'all'
+              ? 'bg-zinc-900 text-white'
               : 'bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50'
           }`}
         >
@@ -57,8 +57,8 @@ export const QuestionsPage: React.FC = () => {
         <button
           onClick={() => setFilter('not_started')}
           className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-colors ${
-            filter === 'not_started' 
-              ? 'bg-zinc-900 text-white' 
+            filter === 'not_started'
+              ? 'bg-zinc-900 text-white'
               : 'bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50'
           }`}
         >
@@ -67,8 +67,8 @@ export const QuestionsPage: React.FC = () => {
         <button
           onClick={() => setFilter('incorrect')}
           className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-colors ${
-            filter === 'incorrect' 
-              ? 'bg-zinc-900 text-white' 
+            filter === 'incorrect'
+              ? 'bg-zinc-900 text-white'
               : 'bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50'
           }`}
         >
@@ -77,8 +77,8 @@ export const QuestionsPage: React.FC = () => {
         <button
           onClick={() => setFilter('correct')}
           className={`px-4 py-2 rounded-lg font-medium text-sm whitespace-nowrap transition-colors ${
-            filter === 'correct' 
-              ? 'bg-zinc-900 text-white' 
+            filter === 'correct'
+              ? 'bg-zinc-900 text-white'
               : 'bg-white text-zinc-600 border border-zinc-200 hover:bg-zinc-50'
           }`}
         >
@@ -109,7 +109,7 @@ export const QuestionsPage: React.FC = () => {
                   <FileQuestion className="w-5 h-5" />
                 </div>
               )}
-              
+
               <div className="flex-1 min-w-0">
                 <div className="flex items-center gap-2 mb-1">
                   <h3 className="font-semibold text-zinc-900">{question.topic}</h3>

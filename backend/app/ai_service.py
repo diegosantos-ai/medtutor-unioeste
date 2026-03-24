@@ -26,21 +26,21 @@ logger = logging.getLogger("ai_service")
 def extract_json_block(text: str) -> str:
     """Extract and clean JSON block from Gemini response text."""
     text = text.strip()
-    
+
     # Remove markdown code blocks
     if text.startswith("```"):
         text = re.sub(r"^```json\s*", "", text)
         text = re.sub(r"^```\s*", "", text)
         text = re.sub(r"\s*```$", "", text)
-    
+
     # Remove control characters that cause JSON parse errors
     text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", text)
-    
+
     # Try to extract JSON object if text contains extra content
     match = re.search(r"\{.*\}", text, re.DOTALL)
     if match:
         return match.group(0)
-    
+
     return text
 
 

@@ -70,7 +70,7 @@ export const ProgressPage: React.FC = () => {
       {/* Subject Progress */}
       <div className="bg-white rounded-2xl p-6 border border-zinc-100 shadow-sm mb-8">
         <h2 className="text-lg font-bold text-zinc-900 mb-6">Domínio por Disciplina</h2>
-        
+
         <div className="space-y-5">
           {subjects.map((subject) => (
             <div key={subject.name}>
@@ -85,7 +85,7 @@ export const ProgressPage: React.FC = () => {
                 </div>
               </div>
               <div className="w-full bg-zinc-100 rounded-full h-3">
-                <div 
+                <div
                   className={`${subject.color} rounded-full h-3 transition-all duration-500`}
                   style={{ width: `${subject.progress}%` }}
                 />
@@ -101,7 +101,7 @@ export const ProgressPage: React.FC = () => {
           <AlertTriangle className="w-5 h-5 text-amber-500" />
           Pontos a Melhorar
         </h2>
-        
+
         <div className="space-y-3">
           <div className="flex items-center justify-between p-3 bg-rose-50 rounded-lg">
             <div>
@@ -138,7 +138,7 @@ export const ProgressPage: React.FC = () => {
       {/* Upcoming Reviews */}
       <div className="bg-white rounded-2xl p-6 border border-zinc-100 shadow-sm">
         <h2 className="text-lg font-bold text-zinc-900 mb-4">Próximas Revisões</h2>
-        
+
         <div className="space-y-3">
           <div className="flex items-center gap-4 p-3 bg-zinc-50 rounded-lg">
             <div className="w-10 h-10 bg-emerald-100 text-emerald-600 rounded-lg flex items-center justify-center">

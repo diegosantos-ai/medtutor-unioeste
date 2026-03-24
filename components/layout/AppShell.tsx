@@ -9,11 +9,11 @@ interface AppShellProps {
   onLogout?: () => void;
 }
 
-export const AppShell: React.FC<AppShellProps> = ({ 
-  children, 
+export const AppShell: React.FC<AppShellProps> = ({
+  children,
   userName = 'Aluno',
   userInitials = 'AL',
-  onLogout 
+  onLogout
 }) => {
   const location = useLocation();
 
@@ -47,14 +47,14 @@ export const AppShell: React.FC<AppShellProps> = ({
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
-            
+
             return (
               <NavLink
                 key={item.path}
                 to={item.path}
                 className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all ${
-                  isActive 
-                    ? 'bg-zinc-800 text-emerald-400' 
+                  isActive
+                    ? 'bg-zinc-800 text-emerald-400'
                     : 'text-zinc-400 hover:bg-zinc-900 hover:text-zinc-200'
                 }`}
               >
@@ -94,14 +94,14 @@ export const AppShell: React.FC<AppShellProps> = ({
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = location.pathname === item.path;
-            
+
             return (
               <NavLink
                 key={item.path}
                 to={item.path}
                 className={`flex flex-col items-center gap-1 px-4 py-2 rounded-lg transition-colors ${
-                  isActive 
-                    ? 'text-emerald-600' 
+                  isActive
+                    ? 'text-emerald-600'
                     : 'text-zinc-400'
                 }`}
               >

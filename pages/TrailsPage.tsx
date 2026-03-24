@@ -70,7 +70,7 @@ export const TrailsPage: React.FC = () => {
               <div className="w-14 h-14 bg-emerald-100 text-emerald-600 rounded-xl flex items-center justify-center shrink-0">
                 {trail.icon}
               </div>
-              
+
               <div className="flex-1 min-w-0">
                 <div className="flex items-center justify-between mb-1">
                   <h3 className="text-lg font-bold text-zinc-900">{trail.title}</h3>
@@ -81,7 +81,7 @@ export const TrailsPage: React.FC = () => {
                   <span>{trail.completedTopics}/{trail.topics} temas concluídos</span>
                 </div>
                 <div className="w-full bg-zinc-100 rounded-full h-2 mt-2">
-                  <div 
+                  <div
                     className="bg-emerald-500 rounded-full h-2 transition-all"
                     style={{ width: `${trail.progress}%` }}
                   />
@@ -102,7 +102,7 @@ export const TrailsPage: React.FC = () => {
           <div>
             <h4 className="font-semibold text-amber-900">Foco Atual</h4>
             <p className="text-sm text-amber-700 mt-1">
-              Concentre seus esforços em Biologia para melhorar sua média no simulado. 
+              Concentre seus esforços em Biologia para melhorar sua média no simulado.
               Complete os 3 próximos temas para avançar 15%.
             </p>
           </div>

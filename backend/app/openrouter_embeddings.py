@@ -3,7 +3,6 @@ Custom embeddings using OpenRouter API with NVIDIA models.
 """
 import os
 import requests
-import numpy as np
 from typing import List, Optional
 from langchain_core.embeddings import Embeddings
 
@@ -34,7 +33,7 @@ class OpenRouterEmbeddings(Embeddings):
             "Authorization": f"Bearer {self.api_key}",
             "Content-Type": "application/json",
         }
-        
+
         data = {
             "model": self.model,
             "input": texts,
@@ -47,10 +46,10 @@ class OpenRouterEmbeddings(Embeddings):
             json=data,
             timeout=60,
         )
-        
+
         if response.status_code != 200:
             raise ValueError(f"OpenRouter API error: {response.status_code} - {response.text}")
-        
+
         result = response.json()
         return [item["embedding"] for item in result["data"]]
 
