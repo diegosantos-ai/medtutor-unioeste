@@ -153,9 +153,29 @@ renew-prod-ssl: ## Renova certificados Lets Encrypt e recarrega o Nginx
 # ==========================================
 setup-agents: ## Instala gerenciador de bibliotecas (pipx) e provisiona subagentes
 	@echo "Iniciando setup do motor de Agentes IA..."
-	@bash $(DEV_WORKSPACE)/gestao-centralizada-agents/scripts/setup-agents.sh
+	@DEV_CANDIDATES="$(DEV_WORKSPACE) $(DEV_WORKSPACE_DEFAULT) $(HOME)/dev-workspace $(HOME)/labs/dev-workspace"; \
+	FOUND=$$(find $(HOME) -maxdepth 3 -type d -name gestao-centralizada-agents 2>/dev/null | head -n1); \
+	if [ -n "$$FOUND" ]; then DEV_CANDIDATES="$$DEV_CANDIDATES $$(dirname $$FOUND)"; fi; \
+	for d in $$DEV_CANDIDATES; do \
+		if [ -f "$$d/gestao-centralizada-agents/scripts/setup-agents.sh" ]; then \
+			echo "Usando $$d/gestao-centralizada-agents/scripts/setup-agents.sh"; \
+			bash "$$d/gestao-centralizada-agents/scripts/setup-agents.sh"; \
+			exit 0; \
+		fi; \
+	done; \
+	echo "Arquivo setup-agents.sh não encontrado em: $$DEV_CANDIDATES"; exit 1
 
 test-skills: ## Confirma se o Servidor Node MCP compila e integra as Skills de IA
 	@echo "Testando build do servidor MCP de Skills..."
-	@cd $(DEV_WORKSPACE)/gestao-centralizada-agents/skills-mcp && npm install && npm run build
+	@DEV_CANDIDATES="$(DEV_WORKSPACE) $(DEV_WORKSPACE_DEFAULT) $(HOME)/dev-workspace $(HOME)/labs/dev-workspace"; \
+	FOUND=$$(find $(HOME) -maxdepth 3 -type d -name gestao-centralizada-agents 2>/dev/null | head -n1); \
+	if [ -n "$$FOUND" ]; then DEV_CANDIDATES="$$DEV_CANDIDATES $$(dirname $$FOUND)"; fi; \
+	for d in $$DEV_CANDIDATES; do \
+		if [ -d "$$d/gestao-centralizada-agents/skills-mcp" ]; then \
+			echo "Usando $$d/gestao-centralizada-agents/skills-mcp"; \
+			cd "$$d/gestao-centralizada-agents/skills-mcp" && npm install && npm run build; \
+			exit 0; \
+		fi; \
+	done; \
+	echo "Diretório skills-mcp não encontrado em: $$DEV_CANDIDATES"; exit 2
 	@echo "✅ Servidor MCP validado e pronto para consumo!"
