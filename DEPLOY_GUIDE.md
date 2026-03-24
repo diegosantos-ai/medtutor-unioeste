@@ -427,6 +427,39 @@ Acesse no navegador:
 
 ### AWS CLI
 
+```mermaid
+flowchart TD
+  subgraph AWS_Cloud [AWS Cloud]
+    subgraph VPC [VPC (10.10.0.0/16)]
+      IGW[Internet Gateway]
+      SG[Security Group\n- Porta 22 (SSH)\n- Porta 80 (HTTP)\n- Porta 443 (HTTPS)]
+      IAM[IAM Role & SSM Parameter Store\n- Permissões para buscar secrets\n- Senhas/API Keys seguras]
+      subgraph Subnet_Publica [Subnet Pública (10.10.1.0/24)]
+        EC2[EC2 Instance]
+        EIP[Elastic IP (3.217.77.125)]
+        subgraph Docker_Engine [Docker Engine]
+          Nginx[Nginx (80/443)]
+          Frontend[Frontend (3000)]
+          Backend[Backend API (8002)]
+          Postgres[Postgres (5432)]
+          ChromaDB[ChromaDB (8000)]
+          Loki[Loki]
+          Prometheus[Prometheus]
+        end
+      end
+    end
+  end
+  DNS[DNS (webapps.codes → 3.217.77.125)]
+  User[Usuário/Browser]
+  User-->|Acessa|DNS
+  DNS-->|Resolve IP|EIP
+  EIP-->|Associa|EC2
+  EC2-->|Executa|Docker_Engine
+  IGW-->|Permite acesso|Subnet_Publica
+  SG-->|Firewall|Subnet_Publica
+  IAM-->|Secrets|EC2
+```
+
 ```bash
 # Listar instâncias EC2
 aws ec2 describe-instances
