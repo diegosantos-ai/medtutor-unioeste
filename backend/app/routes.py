@@ -154,6 +154,13 @@ def get_study_resource(payload: dict, db: Session = Depends(get_db)):
     subject = payload.get("subject", "Geral")
     topic = payload.get("topic", "")
     data = generate_summary(subject, topic)
+    
+    if isinstance(data, dict) and data.get("ok") is False:
+        raise HTTPException(
+            status_code=status.HTTP_502_BAD_GATEWAY,
+            detail=data.get("message", "Erro ao gerar conteúdo.")
+        )
+    
     return {"text": data}
 
 

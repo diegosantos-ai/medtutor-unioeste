@@ -105,7 +105,7 @@ export const StudyMaterialModal: React.FC<StudyMaterialModalProps> = ({
                                         <h4>Pontos Chave</h4>
                                     </div>
                                     <ul className="space-y-3">
-                                        {content.keyPoints?.map((point, i) => (
+                                        {content.prerequisites?.map((point, i) => (
                                             <li key={i} className="flex gap-3 text-sm text-zinc-600 bg-zinc-50 p-3 rounded-xl border border-zinc-100">
                                                 <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
                                                 {point}

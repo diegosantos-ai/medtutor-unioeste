@@ -2,6 +2,7 @@ import json
 import logging
 import os
 import random
+import re
 import warnings
 
 from google.api_core.exceptions import GoogleAPIError
@@ -20,6 +21,42 @@ with warnings.catch_warnings():
     import google.generativeai as genai
 
 logger = logging.getLogger("ai_service")
+
+
+def extract_json_block(text: str) -> str:
+    """Extract and clean JSON block from Gemini response text."""
+    text = text.strip()
+    
+    # Remove markdown code blocks
+    if text.startswith("```"):
+        text = re.sub(r"^```json\s*", "", text)
+        text = re.sub(r"^```\s*", "", text)
+        text = re.sub(r"\s*```$", "", text)
+    
+    # Remove control characters that cause JSON parse errors
+    text = re.sub(r"[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]", "", text)
+    
+    # Try to extract JSON object if text contains extra content
+    match = re.search(r"\{.*\}", text, re.DOTALL)
+    if match:
+        return match.group(0)
+    
+    return text
+
+
+def safe_json_loads(text: str) -> dict:
+    """Safely parse JSON from Gemini response with fallback."""
+    try:
+        cleaned = extract_json_block(text)
+        return json.loads(cleaned)
+    except json.JSONDecodeError as e:
+        logger.warning(f"JSON parse error, attempting recovery: {e}")
+        # Try to fix common issues
+        cleaned = extract_json_block(text)
+        # Replace newlines within strings
+        cleaned = re.sub(r'(?<=\")\n(?=\")', '\\\\n', cleaned)
+        # Try again
+        return json.loads(cleaned)
 
 
 def _get_model():
@@ -87,9 +124,7 @@ def generate_study_plan(profile: dict):
         raise RuntimeError("Serviço de IA indisponível no momento.") from e
 
     try:
-        # Strip markdown json block if present
-        text = response.text.replace("```json", "").replace("```", "").strip()
-        data = json.loads(text)
+        data = safe_json_loads(response.text)
 
         # Inject real videos
         for day_schedule in data.get("schedule", []):
@@ -106,7 +141,7 @@ def generate_study_plan(profile: dict):
         logger.exception(
             "Falha ao interpretar resposta do Gemini", extra={"error": str(e)}
         )
-        return {"weekId": 1, "schedule": []}
+        return {"ok": False, "error_code": "STUDY_PLAN_PARSE_ERROR", "weekId": 1, "schedule": []}
 
 
 def get_tutor_response(query: str, profile: dict, history: list):
@@ -171,6 +206,7 @@ def generate_summary(subject: str, topic: str):
     {{
       "title": "String",
       "subject": "{subject}",
+      "topic": "{topic}",
       "content": "Rich string with markdown formatting discussing {topic}",
       "prerequisites": ["List", "of", "strings"],
       "examples": ["List", "of", "strings"],
@@ -197,16 +233,19 @@ def generate_summary(subject: str, topic: str):
         raise RuntimeError("Serviço de IA indisponível no momento.") from e
 
     try:
-        text = response.text.replace("```json", "").replace("```", "").strip()
-        return json.loads(text)
+        return safe_json_loads(response.text)
     except Exception as e:
         logger.exception(
-            "Falha ao interpretar resumo do Gemini", extra={"error": str(e)}
+            "Falha ao interpretar resumo do Gemini", extra={"error": str(e), "raw_response": response.text[:500]}
         )
         return {
+            "ok": False,
+            "error_code": "SUMMARY_PARSE_ERROR",
+            "message": "Não foi possível estruturar o resumo gerado. Tente novamente.",
             "title": topic,
             "subject": subject,
-            "content": "Failed to generate.",
+            "topic": topic,
+            "content": "Erro na geração do conteúdo.",
             "prerequisites": [],
             "examples": [],
             "externalLinks": [],

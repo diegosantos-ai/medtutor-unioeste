@@ -1,6 +1,21 @@
 # MedTutor - UNIOESTE Edition
 
-MedTutor e uma plataforma de apoio ao estudo para o vestibular de Medicina da UNIOESTE, com frontend React/Vite, backend FastAPI, persistencia em PostgreSQL e suporte a RAG com ChromaDB.
+MedTutor é uma plataforma de apoio ao estudo para o vestibular de Medicina da UNIOESTE, com frontend React/Vite, backend FastAPI, persistência em PostgreSQL e suporte a RAG com ChromaDB.
+
+## Deploy de Produção (OVH VPS)
+
+O deploy oficial de produção agora é realizado em uma VPS da OVH. Para instruções detalhadas, consulte o guia:
+
+- [ovh/DEPLOY_OVH.md](ovh/DEPLOY_OVH.md)
+
+Resumo do fluxo:
+- Provisionamento do VPS Ubuntu
+- Instalação de Docker, Docker Compose, Git e Make
+- Clonagem do repositório
+- Configuração do `.env` (veja exemplo no guia)
+- Build e subida dos containers via `make build` e `make up`
+- Emissão de SSL com Let's Encrypt via `make ssl`
+- DNS apontando para o IP da VPS
 
 ## Stack
 
@@ -155,26 +170,17 @@ PATH="$HOME/.local/bin:$PATH" pre-commit run --all-files
 - O frontend usa Nginx com proxy para o backend na rede interna do compose
 - O backend sobe mesmo sem `GEMINI_API_KEY`; nesse caso, apenas os fluxos de IA ficam indisponiveis
 
-## Producao
+## Produção
 
-- A aplicacao de producao usa [docker-compose.prod.yml](/home/diego/labs/projects/medtutor-unioeste/docker-compose.prod.yml)
-- O dominio continua administrado na Vercel, mas o apontamento DNS deve ir para o Elastic IP da EC2
-- O HTTPS e emitido na propria instancia com Certbot
-- O Grafana continua ativo em producao, mas sem exposicao publica
-- O arquivo [aws/envs/prod/terraform.tfvars](/home/diego/labs/projects/medtutor-unioeste/aws/envs/prod/terraform.tfvars) ja traz os valores operacionais consolidados desta branch
+O deploy em produção é feito na VPS OVH seguindo o guia [ovh/DEPLOY_OVH.md](ovh/DEPLOY_OVH.md). Não há mais dependência de AWS/EC2 ou Terraform para produção.
 
-Fluxo recomendado para a primeira entrega:
+Principais comandos de produção:
+- `make build` — build das imagens
+- `make up` — sobe os containers
+- `make ssl` — emite/renova SSL
+- `make ps` — status dos serviços
 
-```bash
-make deploy-aws-prod
-make bootstrap-prod DOMAIN_NAME=demo.seu-dominio.com AWS_REGION=us-east-1 \
-  POSTGRES_PASSWORD_SSM_PARAMETER=/medtutor/prod/postgres_password \
-  GRAFANA_ADMIN_USER_SSM_PARAMETER=/medtutor/prod/grafana_admin_user \
-  GRAFANA_ADMIN_PASSWORD_SSM_PARAMETER=/medtutor/prod/grafana_admin_password \
-  GEMINI_API_KEY_SSM_PARAMETER=/medtutor/prod/gemini_api_key \
-  OPENAI_API_KEY_SSM_PARAMETER=/medtutor/prod/openai_api_key
-make issue-prod-ssl
-```
+Consulte o guia para troubleshooting, backup e detalhes de variáveis de ambiente.
 
 ## Observabilidade
 

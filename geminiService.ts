@@ -115,7 +115,16 @@ export const generateSummary = async (
 ): Promise<ContentResource> => {
   try {
     const data = await callBackendApi('/summary', { subject, topic });
-    return JSON.parse(data.text);
+    // Backend returns { text: { title, subject, content, prerequisites, examples, externalLinks } }
+    const content = data.text;
+    
+    // If backend returns error structure, throw with readable message
+    if (content && content.ok === false) {
+      throw new Error(content.message || 'Erro ao gerar conteúdo de estudo.');
+    }
+    
+    // Return the content as-is (matches ContentResource type)
+    return content;
   } catch (error) {
     console.error('Summary generation error:', error);
     throw error;
