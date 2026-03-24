@@ -56,9 +56,12 @@ class ApiClient {
       const response = await fetch(url, config);
 
       if (response.status === 401) {
-        // Token expirado ou inválido
+        // Token expirado ou inválido - limpar sessão
         this.setToken(null);
-        window.location.href = '/login';
+        localStorage.removeItem('medtutor_token');
+        sessionStorage.clear();
+        // Recarregar página para mostrar onboarding
+        window.location.reload();
         throw new Error('Sessão expirada. Faça login novamente.');
       }
 
