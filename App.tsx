@@ -355,7 +355,7 @@ const App: React.FC = () => {
           setState(prev => ({ ...prev, plan: { loading: true } }));
 
           try {
-            const email = `${sessionId}@medtutor.local`;
+      const email = `${sessionId}@medtutor.com`;
             const password = sessionId;
 
             let token: string;
