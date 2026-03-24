@@ -5,10 +5,10 @@ from sqlalchemy import (
     String,
     Text,
     JSON,
-    JSONB,
     ForeignKey,
     DateTime,
 )
+from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import relationship
 from datetime import datetime, timezone
 from app.database import Base
