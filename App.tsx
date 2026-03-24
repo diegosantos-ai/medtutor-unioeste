@@ -35,9 +35,11 @@ interface AppState {
 
 const OnboardingPage: React.FC<{ onComplete: (config: any) => void }> = ({ onComplete }) => {
   const [plan, setPlan] = useState<any>(null);
+  const [error, setError] = useState<string | null>(null);
 
   const handleSaveConfig = async (daysConfig: number, diffConfig: any, name: string, profile: string) => {
     setPlan({ loading: true });
+    setError(null);
 
     const sessionId = getOrCreateSessionId();
 
@@ -50,7 +52,7 @@ const OnboardingPage: React.FC<{ onComplete: (config: any) => void }> = ({ onCom
     });
 
     try {
-      const email = `${sessionId}@medtutor.local`;
+      const email = `${sessionId}@medtutor.com`;
       const password = sessionId;
 
       let token: string;
@@ -60,41 +62,64 @@ const OnboardingPage: React.FC<{ onComplete: (config: any) => void }> = ({ onCom
           password
         });
         token = loginResponse.access_token;
-      } catch {
-        const registerResponse = await apiClient.post<{ access_token: string }>('/auth/register', {
-          email,
-          password,
-          name
-        });
-        token = registerResponse.access_token;
+      } catch (loginError: any) {
+        if (loginError.status === 422) {
+          throw loginError;
+        }
+        try {
+          const registerResponse = await apiClient.post<{ access_token: string }>('/auth/register', {
+            email,
+            password,
+            name
+          });
+          token = registerResponse.access_token;
+        } catch (registerError: any) {
+          if (registerError.status === 422) {
+            const errorMsg = registerError.message || 'Erro de validação. Verifique seus dados.';
+            setError(errorMsg);
+            setPlan(null);
+            return;
+          }
+          throw registerError;
+        }
       }
 
       apiClient.setToken(token);
       localStorage.setItem('medtutor_token', token);
 
-      const res = await apiClient.post('/study-plan', {
-        profile: {
-          days: daysConfig,
-          difficulties: diffConfig,
-          name: name,
-          profile: profile
-        }
-      });
+      try {
+        const res = await apiClient.post('/study-plan', {
+          profile: {
+            days: daysConfig,
+            difficulties: diffConfig,
+            name: name,
+            profile: profile
+          }
+        });
 
-      const planData = (res as any).text ? JSON.parse((res as any).text) : res;
-      onComplete({ days: daysConfig, difficulties: diffConfig, studentInfo: { name, profile }, plan: planData, matricula: `MT-${Math.floor(1000 + Math.random() * 9000)}` });
-    } catch (error) {
-      console.error(error);
-      const subjects = diffConfig.map((d: any) => d.subject);
-      const schedule = Array.from({ length: daysConfig }, (_, i) => ({
-        day: i + 1,
-        tasks: [
-          { id: `${i + 1}-1`, subject: subjects[i % subjects.length], topic: `Estudo dirigido - ${subjects[i % subjects.length]}`, duration: '45 min', objective: `Revisao dos conceitos-chave de ${subjects[i % subjects.length]} para o vestibular`, type: 'teoria', completed: false },
-          { id: `${i + 1}-2`, subject: subjects[(i + 1) % subjects.length], topic: `Exercicios - ${subjects[(i + 1) % subjects.length]}`, duration: '30 min', objective: `Resolver questoes no estilo UNIOESTE de ${subjects[(i + 1) % subjects.length]}`, type: 'quiz', quiz: [{ question: `Questao de revisao de ${subjects[(i + 1) % subjects.length]} - Dia ${i + 1}`, options: ['Alternativa A', 'Alternativa B', 'Alternativa C', 'Alternativa D'], answer: 'Alternativa A' }], completed: false }
-        ],
-        summary: `Resumo do dia ${i + 1}: ${subjects[i % subjects.length]} e ${subjects[(i + 1) % subjects.length]}`
-      }));
-      onComplete({ days: daysConfig, difficulties: diffConfig, studentInfo: { name, profile }, plan: { days: daysConfig, schedule }, matricula: `MT-${Math.floor(1000 + Math.random() * 9000)}` });
+        const planData = (res as any).text ? JSON.parse((res as any).text) : res;
+        onComplete({ days: daysConfig, difficulties: diffConfig, studentInfo: { name, profile }, plan: planData, matricula: `MT-${Math.floor(1000 + Math.random() * 9000)}` });
+      } catch {
+        const subjects = diffConfig.map((d: any) => d.subject);
+        const schedule = Array.from({ length: daysConfig }, (_, i) => ({
+          day: i + 1,
+          tasks: [
+            { id: `${i + 1}-1`, subject: subjects[i % subjects.length], topic: `Estudo dirigido - ${subjects[i % subjects.length]}`, duration: '45 min', objective: `Revisao dos conceitos-chave de ${subjects[i % subjects.length]} para o vestibular`, type: 'teoria', completed: false },
+            { id: `${i + 1}-2`, subject: subjects[(i + 1) % subjects.length], topic: `Exercicios - ${subjects[(i + 1) % subjects.length]}`, duration: '30 min', objective: `Resolver questoes no estilo UNIOESTE de ${subjects[(i + 1) % subjects.length]}`, type: 'quiz', quiz: [{ question: `Questao de revisao de ${subjects[(i + 1) % subjects.length]} - Dia ${i + 1}`, options: ['Alternativa A', 'Alternativa B', 'Alternativa C', 'Alternativa D'], answer: 'Alternativa A' }], completed: false }
+          ],
+          summary: `Resumo do dia ${i + 1}: ${subjects[i % subjects.length]} e ${subjects[(i + 1) % subjects.length]}`
+        }));
+        onComplete({ days: daysConfig, difficulties: diffConfig, studentInfo: { name, profile }, plan: { days: daysConfig, schedule }, matricula: `MT-${Math.floor(1000 + Math.random() * 9000)}` });
+      }
+    } catch (err: any) {
+      console.error('Auth error:', err);
+      if (err.status === 422) {
+        setError(err.message || 'Erro de validação. Verifique seus dados.');
+        setPlan(null);
+        return;
+      }
+      setError('Erro ao conectar com o servidor. Tente novamente.');
+      setPlan(null);
     }
   };
 
@@ -104,6 +129,28 @@ const OnboardingPage: React.FC<{ onComplete: (config: any) => void }> = ({ onCom
         <div className="flex flex-col items-center gap-4">
           <div className="w-16 h-16 border-4 border-emerald-200 border-t-emerald-600 rounded-full animate-spin"></div>
           <p className="text-zinc-600 font-medium animate-pulse">Montando seu plano de estudos personalizado...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-neutral-100 flex items-center justify-center p-4">
+        <div className="bg-white rounded-2xl shadow-lg border border-red-200 p-6 max-w-md w-full">
+          <div className="flex items-center gap-3 text-red-600 mb-4">
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 className="font-bold text-lg">Erro no Cadastro</h3>
+          </div>
+          <p className="text-zinc-600 mb-4">{error}</p>
+          <button
+            onClick={() => setError(null)}
+            className="w-full bg-zinc-900 text-white py-3 rounded-xl font-bold hover:bg-zinc-700 transition-colors"
+          >
+            Tentar Novamente
+          </button>
         </div>
       </div>
     );

@@ -3,6 +3,12 @@ const API_BASE_URL = import.meta.env.VITE_API_URL || '/api';
 interface ApiError extends Error {
   status?: number;
   data?: any;
+  validationErrors?: ValidationError[];
+}
+
+interface ValidationError {
+  field: string;
+  message: string;
 }
 
 interface ApiResponse<T> {
@@ -32,6 +38,18 @@ class ApiClient {
     return this.token;
   }
 
+  private parseValidationError(detail: any): { message: string; validationErrors?: ValidationError[] } {
+    if (Array.isArray(detail)) {
+      const errors: ValidationError[] = detail.map((err: any) => ({
+        field: err.loc?.join('.') || 'unknown',
+        message: err.msg || 'Erro de validação'
+      }));
+      const message = errors.map(e => `${e.field}: ${e.message}`).join('; ');
+      return { message, validationErrors: errors };
+    }
+    return { message: String(detail) };
+  }
+
   private async request<T>(
     endpoint: string,
     options: RequestInit = {}
@@ -56,26 +74,37 @@ class ApiClient {
       const response = await fetch(url, config);
 
       if (response.status === 401) {
-        // Token expirado ou inválido - limpar sessão
         this.setToken(null);
         localStorage.removeItem('medtutor_token');
         sessionStorage.clear();
-        // Recarregar página para mostrar onboarding
         window.location.reload();
         throw new Error('Sessão expirada. Faça login novamente.');
       }
 
+      if (response.status === 422) {
+        const errorData = await response.json().catch(() => ({}));
+        const { message, validationErrors } = this.parseValidationError(errorData.detail);
+        const error: ApiError = new Error(message);
+        error.status = 422;
+        error.data = errorData;
+        error.validationErrors = validationErrors;
+        throw error;
+      }
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
-        const error: ApiError = new Error(
-          errorData.detail || `Erro ${response.status}: ${response.statusText}`
-        );
+        let errorMessage = errorData.detail || errorData.message || `Erro ${response.status}: ${response.statusText}`;
+        
+        if (typeof errorMessage === 'object') {
+          errorMessage = JSON.stringify(errorMessage);
+        }
+        
+        const error: ApiError = new Error(errorMessage);
         error.status = response.status;
         error.data = errorData;
         throw error;
       }
 
-      // Para respostas 204 No Content
       if (response.status === 204) {
         return {} as T;
       }
@@ -113,3 +142,4 @@ class ApiClient {
 }
 
 export const apiClient = new ApiClient();
+export type { ApiError, ValidationError };
