@@ -61,7 +61,17 @@ export const TrailsPage: React.FC = () => {
     );
   }
 
-  if (error || subjects.length === 0) {
+  if (error) {
+    return (
+      <div className="max-w-4xl mx-auto p-6">
+        <div className="bg-red-50 border border-red-200 rounded-xl p-4 text-red-700">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  if (subjects.length === 0) {
     return (
       <div className="max-w-4xl mx-auto p-6">
         <div className="bg-white rounded-2xl p-6 border border-zinc-100 shadow-sm text-center">

@@ -417,14 +417,11 @@ const App: React.FC = () => {
             apiClient.setToken(token);
             localStorage.setItem('medtutor_token', token);
 
-            const res = await apiClient.post('/study-plan', {
+            // Fire and forget / background generation to not block UI
+            apiClient.post('/study-plan', {
               profile: { days: daysConfig, difficulties: diffConfig, name, profile }
-            });
+            }).catch(e => console.error("Detalhe: Plano BG info:", e));
 
-            const planData = (res as any).text ? JSON.parse((res as any).text) : res;
-            setState(prev => ({ ...prev, days: daysConfig, difficulties: diffConfig, studentInfo: { name, profile }, plan: planData, matricula: newMatricula }));
-          } catch (error) {
-            console.error(error);
             const subjects = diffConfig.map((d: any) => d.subject);
             const schedule = Array.from({ length: daysConfig }, (_, i) => ({
               day: i + 1,
@@ -433,6 +430,19 @@ const App: React.FC = () => {
                 { id: `${i + 1}-2`, subject: subjects[(i + 1) % subjects.length], topic: `Exercicios - ${subjects[(i + 1) % subjects.length]}`, duration: '30 min', objective: `Resolver questoes no estilo UNIOESTE de ${subjects[(i + 1) % subjects.length]}`, type: 'quiz', quiz: [{ question: `Questao de revisao de ${subjects[(i + 1) % subjects.length]} - Dia ${i + 1}`, options: ['Alternativa A', 'Alternativa B', 'Alternativa C', 'Alternativa D'], answer: 'Alternativa A' }], completed: false }
               ],
               summary: `Resumo do dia ${i + 1}: ${subjects[i % subjects.length]} e ${subjects[(i + 1) % subjects.length]}`
+            }));
+            
+            setState(prev => ({ ...prev, days: daysConfig, difficulties: diffConfig, studentInfo: { name, profile }, plan: { days: daysConfig, schedule }, matricula: newMatricula }));
+          } catch (error) {
+            console.error('Erro geral ao logar:', error);
+            // Fallback manual local garantido em caso de falha de login
+            const subjects = diffConfig.map((d: any) => d.subject);
+            const schedule = Array.from({ length: daysConfig }, (_, i) => ({
+              day: i + 1,
+              tasks: [
+                { id: `${i + 1}-1`, subject: subjects[i % subjects.length], topic: `Estudo dirigido - ${subjects[i % subjects.length]}`, duration: '45 min', objective: `Revisao dos conceitos-chave de ${subjects[i % subjects.length]} para o vestibular`, type: 'teoria', completed: false }
+              ],
+              summary: `Resumo do dia ${i + 1}`
             }));
             setState(prev => ({ ...prev, days: daysConfig, difficulties: diffConfig, studentInfo: { name, profile }, plan: { days: daysConfig, schedule }, matricula: newMatricula }));
           }

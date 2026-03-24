@@ -29,6 +29,7 @@ interface SubjectProgress {
 
 export const ProgressPage: React.FC = () => {
   const [progress, setProgress] = useState<ProgressData | null>(null);
+  const [subjects, setSubjects] = useState<SubjectProgress[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -38,8 +39,21 @@ export const ProgressPage: React.FC = () => {
 
   const fetchProgress = async () => {
     try {
-      const data = await apiClient.get<ProgressData>('/progress');
-      setProgress(data);
+      const [progData, trailsData] = await Promise.all([
+        apiClient.get<ProgressData>('/progress'),
+        apiClient.get<{subjects: any[]}>('/trails').catch(() => ({ subjects: [] }))
+      ]);
+      setProgress(progData);
+      
+      const colors = ['bg-emerald-500', 'bg-blue-500', 'bg-amber-500', 'bg-rose-500', 'bg-purple-500'];
+      const mappedSubjects = (trailsData.subjects || []).map((s: any, idx: number) => ({
+        name: s.name,
+        progress: s.progress,
+        questions: s.total_questions,
+        accuracy: s.accuracy,
+        color: colors[idx % colors.length]
+      }));
+      setSubjects(mappedSubjects);
     } catch (err: any) {
       console.error('Failed to fetch progress:', err);
       setError('Erro ao carregar progresso');
@@ -69,14 +83,6 @@ export const ProgressPage: React.FC = () => {
 
   const totalQuestions = progress.total_questions || 0;
   const averageAccuracy = progress.accuracy || 0;
-
-  const subjects: SubjectProgress[] = [
-    { name: 'Biologia', progress: 65, questions: Math.round(totalQuestions * 0.3), accuracy: Math.round(averageAccuracy * 0.95), color: 'bg-emerald-500' },
-    { name: 'Química', progress: 45, questions: Math.round(totalQuestions * 0.2), accuracy: Math.round(averageAccuracy * 0.9), color: 'bg-blue-500' },
-    { name: 'Física', progress: 30, questions: Math.round(totalQuestions * 0.18), accuracy: Math.round(averageAccuracy * 0.85), color: 'bg-amber-500' },
-    { name: 'Português', progress: 80, questions: Math.round(totalQuestions * 0.22), accuracy: Math.round(averageAccuracy * 1.05), color: 'bg-rose-500' },
-    { name: 'Matemática', progress: 25, questions: Math.round(totalQuestions * 0.1), accuracy: Math.round(averageAccuracy * 0.8), color: 'bg-purple-500' },
-  ].filter(s => s.questions > 0);
 
   const totalSubjects = subjects.reduce((acc, s) => acc + s.questions, 0);
 

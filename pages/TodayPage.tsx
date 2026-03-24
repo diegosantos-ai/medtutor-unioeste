@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Home, Calendar, RefreshCw, Clock, Target, Zap, Loader2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import { apiClient } from '../components/api/apiClient';
 
 interface ProgressData {
@@ -30,6 +31,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({
   userName = 'Aluno',
   onStartSession
 }) => {
+  const navigate = useNavigate();
   const [progress, setProgress] = useState<ProgressData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -131,7 +133,7 @@ export const TodayPage: React.FC<TodayPageProps> = ({
         </div>
 
         <button
-          onClick={onStartSession}
+          onClick={onStartSession || (() => navigate('/questoes'))}
           className="w-full bg-zinc-900 text-white py-4 rounded-xl font-bold hover:bg-emerald-600 transition-colors flex items-center justify-center gap-2"
         >
           <Zap className="w-5 h-5" />

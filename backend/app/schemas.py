@@ -17,11 +17,7 @@ class UserCreate(UserBase):
     def validate_name(cls, v: str) -> str:
         if not v or len(v.strip()) < 2:
             raise ValueError('Nome deve ter pelo menos 2 caracteres')
-        if not re.search(r'\d', v):
-            raise ValueError('Nome deve conter pelo menos 1 número (ex: diego86)')
-        if ' ' in v:
-            raise ValueError('Nome não pode conter espaços')
-        return v.strip().lower()
+        return v.strip()
 
 
 class UserLogin(BaseModel):

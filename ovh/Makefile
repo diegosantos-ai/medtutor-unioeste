@@ -2,7 +2,7 @@
 # Makefile Deploy OVH - MedTutor
 # ==============================================================================
 
-DOMAIN_NAME ?= webapps.codes
+DOMAIN_NAME ?= medtutor.webapps.codes
 LETSENCRYPT_EMAIL ?= santos.diegoj86@gmail.com
 CORS_ALLOWED_ORIGINS ?= https://$(DOMAIN_NAME)
 
