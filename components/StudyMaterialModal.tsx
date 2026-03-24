@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, BookOpen, Lightbulb, CheckCircle2, Loader2, Sparkles, BrainCircuit } from 'lucide-react';
 import { generateSummary } from '../geminiService';
 import { ContentResource } from '../types';
+import { MarkdownRenderer, cleanMarkdown, renderListItems } from './MarkdownRenderer';
 
 interface StudyMaterialModalProps {
     isOpen: boolean;
@@ -89,12 +90,10 @@ export const StudyMaterialModal: React.FC<StudyMaterialModalProps> = ({
                             </button>
                         </div>
                     ) : content ? (
-                        <div className="space-y-10">
-                            {/* Main Content */}
-                            <div className="prose prose-zinc max-w-none">
-                                <p className="text-zinc-700 leading-relaxed text-lg italic border-l-4 border-emerald-400 pl-6 bg-emerald-50/30 py-4 rounded-r-lg">
-                                    {content.content}
-                                </p>
+                        <div className="space-y-8">
+                            {/* Main Content - Renderizado com Markdown */}
+                            <div className="border-l-4 border-emerald-400 pl-6 bg-emerald-50/30 py-4 rounded-r-lg">
+                                <MarkdownRenderer content={cleanMarkdown(content.content)} />
                             </div>
 
                             <div className="grid md:grid-cols-2 gap-8">
@@ -105,10 +104,10 @@ export const StudyMaterialModal: React.FC<StudyMaterialModalProps> = ({
                                         <h4>Pontos Chave</h4>
                                     </div>
                                     <ul className="space-y-3">
-                                        {content.prerequisites?.map((point, i) => (
+                                        {renderListItems(content.prerequisites?.join('\n') || '').map((point, i) => (
                                             <li key={i} className="flex gap-3 text-sm text-zinc-600 bg-zinc-50 p-3 rounded-xl border border-zinc-100">
                                                 <CheckCircle2 size={16} className="text-emerald-500 shrink-0 mt-0.5" />
-                                                {point}
+                                                <MarkdownRenderer content={point} />
                                             </li>
                                         ))}
                                     </ul>
@@ -121,10 +120,10 @@ export const StudyMaterialModal: React.FC<StudyMaterialModalProps> = ({
                                         <h4>Exemplos e Contexto</h4>
                                     </div>
                                     <ul className="space-y-3">
-                                        {content.examples?.map((ex, i) => (
+                                        {renderListItems(content.examples?.join('\n') || '').map((ex, i) => (
                                             <li key={i} className="flex gap-3 text-sm text-zinc-600 bg-emerald-50/30 p-3 rounded-xl border border-emerald-100/50">
                                                 <div className="w-1.5 h-1.5 bg-emerald-400 rounded-full shrink-0 mt-2" />
-                                                {ex}
+                                                <MarkdownRenderer content={ex} />
                                             </li>
                                         ))}
                                     </ul>
