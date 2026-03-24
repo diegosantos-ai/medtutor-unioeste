@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Message, UserProfile, QuizItem } from '../types';
 import { getTutorResponse, generateLargeQuizFromContext } from '../geminiService';
 import { useLogger } from '../utils/logger';
+import { getOrCreateSessionId } from '../utils/session';
 import { Send, Bot, User, Loader2, BrainCircuit, X, CheckCircle, AlertCircle } from 'lucide-react';
 
 interface TutorChatProps {
@@ -22,18 +23,30 @@ const TutorChat: React.FC<TutorChatProps> = ({ profile }) => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Load persistence
+  // Session-based chat history key
+  const getChatHistoryKey = () => `medtutor_chat_history_${getOrCreateSessionId()}`;
+
+  // Load persistence - isolated by session
   useEffect(() => {
-    const savedMsg = localStorage.getItem('medtutor_chat_history');
+    const chatHistoryKey = getChatHistoryKey();
+    const savedMsg = localStorage.getItem(chatHistoryKey);
     if (savedMsg) {
-      setMessages(JSON.parse(savedMsg));
+      try {
+        const parsed = JSON.parse(savedMsg);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          setMessages(parsed);
+        }
+      } catch (e) {
+        console.error('Failed to parse chat history', e);
+      }
     }
   }, []);
 
-  // Save persistence
+  // Save persistence - isolated by session
   useEffect(() => {
     if (messages.length > 1) { // Only save if there is interaction
-      localStorage.setItem('medtutor_chat_history', JSON.stringify(messages));
+      const chatHistoryKey = getChatHistoryKey();
+      localStorage.setItem(chatHistoryKey, JSON.stringify(messages));
     }
   }, [messages]);
 
