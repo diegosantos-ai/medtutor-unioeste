@@ -31,7 +31,6 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
           code: ({ className, children, ...props }) => {
             const match = /language-(\w+)/.exec(className || '');
             const isInline = !match;
-            
             if (isInline) {
               return (
                 <code className="bg-zinc-100 text-zinc-800 px-1.5 py-0.5 rounded text-sm font-mono" {...props}>
@@ -39,7 +38,6 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
                 </code>
               );
             }
-            
             return (
               <div className="my-4 rounded-lg overflow-hidden">
                 <SyntaxHighlighter
@@ -78,21 +76,19 @@ export const MarkdownRenderer: React.FC<MarkdownRendererProps> = ({ content, cla
 
 export function cleanMarkdown(text: string): string {
   if (!text) return '';
-  
   // Remove markdown code blocks markers
   let cleaned = text.replace(/^```json\s*/i, '');
   cleaned = cleaned.replace(/^```\s*/gm, '');
   cleaned = cleaned.replace(/\s*```$/g, '');
-  
+
   // Remove control characters
   cleaned = cleaned.replace(/[\x00-\x08\x0b\x0c\x0e-\x1f\x7f]/g, '');
-  
+
   return cleaned.trim();
 }
 
 export function renderListItems(text: string): string[] {
   if (!text) return [];
-  
   // Split by newlines and clean
   const items = text
     .split(/\n/)
@@ -101,6 +97,5 @@ export function renderListItems(text: string): string[] {
       return line.replace(/^[\s]*[-*•]\s*/, '').replace(/^\d+\.\s*/, '').trim();
     })
     .filter(line => line.length > 0);
-  
   return items;
 }

@@ -13,12 +13,12 @@ function generateSessionId(): string {
 
 export function getOrCreateSessionId(): string {
   let sessionId = localStorage.getItem(SESSION_KEY);
-  
+
   if (!sessionId) {
     sessionId = generateSessionId();
     localStorage.setItem(SESSION_KEY, sessionId);
   }
-  
+
   return sessionId;
 }
 
@@ -40,13 +40,13 @@ export function clearSession(): void {
 
 export async function initializeSession(name: string): Promise<{ sessionId: string; token: string }> {
   const sessionId = getOrCreateSessionId();
-  
+
   // Create or login user with session-based email
   const email = `${sessionId}@medtutor.local`;
   const password = sessionId; // Use session ID as password
-  
+
   let token: string;
-  
+
   try {
     // Try to login first
     const loginResponse = await apiClient.post<{ access_token: string }>('/auth/login', {
@@ -63,17 +63,17 @@ export async function initializeSession(name: string): Promise<{ sessionId: stri
     });
     token = registerResponse.access_token;
   }
-  
+
   // Set token for future requests
   apiClient.setToken(token);
-  
+
   // Save session data
   setSessionData({
     sessionId,
     name,
     createdAt: new Date().toISOString()
   });
-  
+
   return { sessionId, token };
 }
 

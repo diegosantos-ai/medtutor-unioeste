@@ -26,7 +26,7 @@ async function fetchWithRetry(url: string, options: any, retries: number = 3) {
 
 // Helper for backend API routing
 // Helper for backend API routing
-async function callBackendApi(endpoint: string, payload: any) {
+async function callBackendApi(endpoint: string, payload: any = null, method: string = 'POST') {
   const token = localStorage.getItem('medtutor_token');
 
   if (!navigator.onLine) {
@@ -35,12 +35,12 @@ async function callBackendApi(endpoint: string, payload: any) {
 
   try {
     const response = await fetchWithRetry(`/api${endpoint}`, {
-      method: 'POST',
+      method: method,
       headers: {
         'Content-Type': 'application/json',
         ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       },
-      body: JSON.stringify(payload)
+      body: payload ? JSON.stringify(payload) : undefined
     });
 
     if (!response.ok) {
@@ -69,6 +69,16 @@ export const getTutorResponse = async (
   } catch (error) {
     console.error('Tutor response error:', error);
     throw error;
+  }
+};
+
+export const getChatHistory = async (): Promise<Message[]> => {
+  try {
+    const data = await callBackendApi('/chat/history', null, 'GET');
+    return data.messages || [];
+  } catch (error) {
+    console.error('Chat history error:', error);
+    return [];
   }
 };
 
@@ -117,12 +127,12 @@ export const generateSummary = async (
     const data = await callBackendApi('/summary', { subject, topic });
     // Backend returns { text: { title, subject, content, prerequisites, examples, externalLinks } }
     const content = data.text;
-    
+
     // If backend returns error structure, throw with readable message
     if (content && content.ok === false) {
       throw new Error(content.message || 'Erro ao gerar conteúdo de estudo.');
     }
-    
+
     // Return the content as-is (matches ContentResource type)
     return content;
   } catch (error) {

@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Message, UserProfile, QuizItem } from '../types';
-import { getTutorResponse, generateLargeQuizFromContext } from '../geminiService';
+import { getTutorResponse, generateLargeQuizFromContext, getChatHistory } from '../geminiService';
 import { useLogger } from '../utils/logger';
 import { getOrCreateSessionId } from '../utils/session';
 import { Send, Bot, User, Loader2, BrainCircuit, X, CheckCircle, AlertCircle } from 'lucide-react';
@@ -11,9 +11,7 @@ interface TutorChatProps {
 
 const TutorChat: React.FC<TutorChatProps> = ({ profile }) => {
   const logger = useLogger('TutorChat');
-  const [messages, setMessages] = useState<Message[]>([
-    { role: 'bot', text: `Ola, ${profile.name}! Sou seu Tutor IA para o vestibular de Medicina da UNIOESTE. Posso ajudar com Biologia, Quimica, Fisica, Matematica, Portugues, Historia, Geografia e Redacao. Sobre o que quer estudar?`, timestamp: Date.now() }
-  ]);
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const [quizLoading, setQuizLoading] = useState(false);
@@ -23,32 +21,16 @@ const TutorChat: React.FC<TutorChatProps> = ({ profile }) => {
 
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // Session-based chat history key
-  const getChatHistoryKey = () => `medtutor_chat_history_${getOrCreateSessionId()}`;
-
-  // Load persistence - isolated by session
+  // Load persistence - isolated by DB session
   useEffect(() => {
-    const chatHistoryKey = getChatHistoryKey();
-    const savedMsg = localStorage.getItem(chatHistoryKey);
-    if (savedMsg) {
-      try {
-        const parsed = JSON.parse(savedMsg);
-        if (Array.isArray(parsed) && parsed.length > 0) {
-          setMessages(parsed);
-        }
-      } catch (e) {
-        console.error('Failed to parse chat history', e);
+    getChatHistory().then(history => {
+      if (history && history.length > 0) {
+        setMessages(history);
+      } else {
+        setMessages([{ role: 'bot', text: `Ola, ${profile.name}! Sou seu Tutor IA para o vestibular de Medicina da UNIOESTE. Posso ajudar com Biologia, Quimica, Fisica, Matematica, Portugues, Historia, Geografia e Redacao. Sobre o que quer estudar?`, timestamp: Date.now() }]);
       }
-    }
-  }, []);
-
-  // Save persistence - isolated by session
-  useEffect(() => {
-    if (messages.length > 1) { // Only save if there is interaction
-      const chatHistoryKey = getChatHistoryKey();
-      localStorage.setItem(chatHistoryKey, JSON.stringify(messages));
-    }
-  }, [messages]);
+    });
+  }, [profile.name]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });

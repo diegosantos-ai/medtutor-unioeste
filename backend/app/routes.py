@@ -23,6 +23,13 @@ from app.schemas import (
     ErrorNotebookItem,
     ClinicalCase,
     CaseAnswer,
+    ProgressResponse,
+    ChatHistoryResponse,
+    ChatHistoryItem,
+    TrailsResponse,
+    SubjectProgress,
+    QuestionsResponse,
+    QuestionResponse,
 )
 from app.rag_service import rag_db
 import os
@@ -62,7 +69,7 @@ def create_study_plan(
 
     # 2. Save the plan to the DB
     new_plan = models.StudyPlan(
-        user_id=current_user.id,
+        user_id=current_user.user_id,
         week_id=plan_data.get("weekId", 1),
         schedule_data=plan_data,
     )
@@ -93,14 +100,14 @@ def chat_with_tutor(
     # Simplistic implementation finding the first session or creating one for this user
     session = (
         db.query(models.ChatSession)
-        .filter(models.ChatSession.user_id == current_user.id)
+        .filter(models.ChatSession.user_id == current_user.user_id)
         .first()
     )
     if not session:
         import uuid
 
         session = models.ChatSession(
-            id=str(uuid.uuid4()), user_id=current_user.id, title="Estudos"
+            id=str(uuid.uuid4()), user_id=current_user.user_id, title="Estudos"
         )
         db.add(session)
         db.commit()
@@ -154,13 +161,13 @@ def get_study_resource(payload: dict, db: Session = Depends(get_db)):
     subject = payload.get("subject", "Geral")
     topic = payload.get("topic", "")
     data = generate_summary(subject, topic)
-    
+
     if isinstance(data, dict) and data.get("ok") is False:
         raise HTTPException(
             status_code=status.HTTP_502_BAD_GATEWAY,
             detail=data.get("message", "Erro ao gerar conteúdo.")
         )
-    
+
     return {"text": data}
 
 
@@ -231,7 +238,7 @@ def get_flashcards(
     due_only: bool = True,
 ):
     query = db.query(models.Flashcard).filter(
-        models.Flashcard.user_id == current_user.id
+        models.Flashcard.user_id == current_user.user_id
     )
 
     if due_only:
@@ -249,7 +256,7 @@ def create_flashcard(
     db: Session = Depends(get_db),
 ):
     flashcard = models.Flashcard(
-        user_id=current_user.id,
+        user_id=current_user.user_id,
         front=card_data.front,
         back=card_data.back,
         topic=card_data.topic,
@@ -272,7 +279,7 @@ def review_flashcard(
     flashcard = (
         db.query(models.Flashcard)
         .filter(
-            models.Flashcard.id == card_id, models.Flashcard.user_id == current_user.id
+            models.Flashcard.id == card_id, models.Flashcard.user_id == current_user.user_id
         )
         .first()
     )
@@ -325,7 +332,7 @@ def get_error_notebook(
         db.query(models.UserInteraction, models.Question)
         .join(models.Question, models.UserInteraction.question_id == models.Question.id)
         .filter(
-            models.UserInteraction.user_id == current_user.id,
+            models.UserInteraction.user_id == current_user.user_id,
             models.UserInteraction.status == "errou",
         )
     )
@@ -364,7 +371,7 @@ def get_error_stats(
         )
         .join(models.Question, models.UserInteraction.question_id == models.Question.id)
         .filter(
-            models.UserInteraction.user_id == current_user.id,
+            models.UserInteraction.user_id == current_user.user_id,
             models.UserInteraction.status == "errou",
         )
         .group_by(models.Question.materia)
@@ -481,7 +488,7 @@ def submit_case_answer(
 
     # Registrar interação do usuário
     interaction = models.UserInteraction(
-        user_id=current_user.id,
+        user_id=current_user.user_id,
         question_id=question.id,
         status="acertou" if is_correct else "errou",
         tempo_resposta=0,
@@ -510,7 +517,7 @@ def get_user_stats(
     # Total de questões respondidas
     total_questions = (
         db.query(models.UserInteraction)
-        .filter(models.UserInteraction.user_id == current_user.id)
+        .filter(models.UserInteraction.user_id == current_user.user_id)
         .count()
     )
 
@@ -518,7 +525,7 @@ def get_user_stats(
     correct_answers = (
         db.query(models.UserInteraction)
         .filter(
-            models.UserInteraction.user_id == current_user.id,
+            models.UserInteraction.user_id == current_user.user_id,
             models.UserInteraction.status == "acertou",
         )
         .count()
@@ -531,7 +538,7 @@ def get_user_stats(
     flashcards_reviewed = (
         db.query(models.Flashcard)
         .filter(
-            models.Flashcard.user_id == current_user.id,
+            models.Flashcard.user_id == current_user.user_id,
             models.Flashcard.next_review > today_start,
         )
         .count()
@@ -540,7 +547,7 @@ def get_user_stats(
     # Total de flashcards
     total_flashcards = (
         db.query(models.Flashcard)
-        .filter(models.Flashcard.user_id == current_user.id)
+        .filter(models.Flashcard.user_id == current_user.user_id)
         .count()
     )
 
@@ -556,6 +563,153 @@ def get_user_stats(
         "streak": current_user.streak,
         "study_days": total_questions,  # Simplificação
     }
+
+
+# ============================================================================
+# PROGRESS ENDPOINTS
+# ============================================================================
+
+
+@router.get("/progress", response_model=ProgressResponse)
+def get_progress(
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    total_questions = (
+        db.query(models.UserInteraction)
+        .filter(models.UserInteraction.user_id == current_user.user_id)
+        .count()
+    )
+
+    correct_answers = (
+        db.query(models.UserInteraction)
+        .filter(
+            models.UserInteraction.user_id == current_user.user_id,
+            models.UserInteraction.status == "acertou",
+        )
+        .count()
+    )
+
+    today_start = datetime.now(timezone.utc).replace(
+        hour=0, minute=0, second=0, microsecond=0
+    )
+    flashcards_reviewed = (
+        db.query(models.Flashcard)
+        .filter(
+            models.Flashcard.user_id == current_user.user_id,
+            models.Flashcard.next_review > today_start,
+        )
+        .count()
+    )
+
+    total_flashcards = (
+        db.query(models.Flashcard)
+        .filter(models.Flashcard.user_id == current_user.user_id)
+        .count()
+    )
+
+    progress_data = current_user.progress_data or {}
+    current_day = progress_data.get("current_day", 1)
+    total_days = progress_data.get("total_days", 30)
+
+    return ProgressResponse(
+        user_id=current_user.user_id,
+        current_day=current_day,
+        total_days=total_days,
+        progress_percent=round((current_day / total_days) * 100, 0) if total_days > 0 else 0,
+        days_completed=current_day - 1,
+        days_remaining=total_days - current_day,
+        accuracy=round((correct_answers / total_questions * 100), 1) if total_questions > 0 else 0.0,
+        streak=current_user.streak or 0,
+        total_flashcards=total_flashcards,
+        flashcards_reviewed_today=flashcards_reviewed,
+        total_questions=total_questions,
+        correct_answers=correct_answers,
+        study_sessions_today=progress_data.get("study_sessions_today", 0),
+        hours_studied_today=progress_data.get("hours_studied_today", 0.0),
+    )
+
+
+@router.put("/progress")
+def update_progress(
+    payload: dict,
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    progress_data = current_user.progress_data or {}
+    progress_data.update(payload)
+    current_user.progress_data = progress_data
+    db.commit()
+    db.refresh(current_user)
+    return {"status": "ok", "progress_data": current_user.progress_data}
+
+
+# ============================================================================
+# CHAT HISTORY ENDPOINTS
+# ============================================================================
+
+
+@router.get("/chat/history", response_model=ChatHistoryResponse)
+def get_chat_history(
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    session = (
+        db.query(models.ChatSession)
+        .filter(models.ChatSession.user_id == current_user.user_id)
+        .order_by(models.ChatSession.last_active.desc())
+        .first()
+    )
+
+    if not session:
+        return ChatHistoryResponse(
+            session_id="",
+            messages=[],
+            created_at=datetime.now(timezone.utc),
+            last_active=datetime.now(timezone.utc),
+        )
+
+    messages = (
+        db.query(models.Message)
+        .filter(models.Message.session_id == session.id)
+        .order_by(models.Message.timestamp.asc())
+        .all()
+    )
+
+    return ChatHistoryResponse(
+        session_id=session.id,
+        messages=[
+            ChatHistoryItem(
+                id=m.id,
+                role=m.role,
+                text=m.text,
+                timestamp=m.timestamp,
+                sources=m.sources,
+            )
+            for m in messages
+        ],
+        created_at=session.last_active,
+        last_active=session.last_active,
+    )
+
+
+@router.delete("/chat/history")
+def clear_chat_history(
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    sessions = (
+        db.query(models.ChatSession)
+        .filter(models.ChatSession.user_id == current_user.user_id)
+        .all()
+    )
+
+    for session in sessions:
+        db.query(models.Message).filter(models.Message.session_id == session.id).delete()
+        db.delete(session)
+
+    db.commit()
+    return {"status": "ok", "message": "Histórico de chat limpo"}
 
 
 # ============================================================================
@@ -592,3 +746,194 @@ def ingest_all_pdfs(payload: dict = None):
     folder = payload.get("folder") if payload else None
     results = rag_db.ingest_folder(folder)
     return results
+
+
+# ============================================================================
+# TRAILS (SUBJECTS) ENDPOINTS
+# ============================================================================
+
+
+@router.get("/trails", response_model=TrailsResponse)
+def get_trails(
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    subjects_data = [
+        {"id": "biologia", "name": "Biologia", "icon": "brain"},
+        {"id": "quimica", "name": "Química", "icon": "book"},
+        {"id": "fisica", "name": "Física", "icon": "target"},
+        {"id": "portugues", "name": "Português", "icon": "file"},
+        {"id": "matematica", "name": "Matemática", "icon": "calculator"},
+        {"id": "historia", "name": "História", "icon": "clock"},
+        {"id": "geografia", "name": "Geografia", "icon": "globe"},
+    ]
+
+    subjects = []
+    for subj in subjects_data:
+        total_q = (
+            db.query(models.Question)
+            .filter(
+                models.Question.materia.ilike(f"%{subj['name']}%"),
+                models.Question.vestibular == "UNIOESTE",
+            )
+            .count()
+        )
+
+        answered = (
+            db.query(models.UserInteraction)
+            .join(models.Question, models.UserInteraction.question_id == models.Question.id)
+            .filter(
+                models.UserInteraction.user_id == current_user.user_id,
+                models.Question.materia.ilike(f"%{subj['name']}%"),
+            )
+            .count()
+        )
+
+        correct = (
+            db.query(models.UserInteraction)
+            .join(models.Question, models.UserInteraction.question_id == models.Question.id)
+            .filter(
+                models.UserInteraction.user_id == current_user.user_id,
+                models.Question.materia.ilike(f"%{subj['name']}%"),
+                models.UserInteraction.status == "acertou",
+            )
+            .count()
+        )
+
+        accuracy = round((correct / answered * 100), 1) if answered > 0 else 0.0
+        progress = min(100, answered * 5) if total_q > 0 else 0
+
+        subjects.append(
+            SubjectProgress(
+                id=subj["id"],
+                name=subj["name"],
+                icon=subj["icon"],
+                total_questions=total_q,
+                answered_questions=answered,
+                correct_answers=correct,
+                accuracy=accuracy,
+                progress=progress,
+            )
+        )
+
+    subjects.sort(key=lambda x: x.accuracy, reverse=True)
+
+    focus_subject = subjects[0].name if subjects else None
+    focus_tip = None
+    if focus_subject:
+        focus_tip = f"Continue estudando {focus_subject} para melhorar ainda mais sua média!"
+
+    return TrailsResponse(
+        subjects=subjects,
+        focus_subject=focus_subject,
+        focus_tip=focus_tip,
+    )
+
+
+# ============================================================================
+# QUESTIONS ENDPOINTS
+# ============================================================================
+
+
+@router.get("/questions", response_model=QuestionsResponse)
+def get_questions(
+    subject: str = "",
+    difficulty: str = "",
+    status_filter: str = "",
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    query = (
+        db.query(models.Question, models.UserInteraction)
+        .outerjoin(
+            models.UserInteraction,
+            (models.UserInteraction.question_id == models.Question.id)
+            & (models.UserInteraction.user_id == current_user.user_id),
+        )
+        .filter(models.Question.vestibular == "UNIOESTE")
+    )
+
+    if subject:
+        query = query.filter(models.Question.materia.ilike(f"%{subject}%"))
+
+    if difficulty:
+        query = query.filter(models.Question.dificuldade == difficulty)
+
+    results = query.order_by(models.Question.materia).limit(50).all()
+
+    questions = []
+    by_status = {"correct": 0, "incorrect": 0, "not_started": 0}
+
+    for question, interaction in results:
+        status = None
+        if interaction:
+            status = "correct" if interaction.status == "acertou" else "incorrect"
+            by_status[status] += 1
+        else:
+            by_status["not_started"] += 1
+
+        if status_filter and status != status_filter:
+            continue
+
+        questions.append(
+            QuestionResponse(
+                id=question.id,
+                subject=str(question.materia),
+                topic=str(question.assunto),
+                difficulty=str(question.dificuldade),
+                status=status,
+                enunciado=str(question.enunciado)[:150] + "...",
+            )
+        )
+
+    return QuestionsResponse(
+        questions=questions,
+        total=len(questions),
+        by_status=by_status,
+    )
+
+
+@router.post("/questions/{question_id}/answer")
+def answer_question(
+    question_id: str,
+    payload: dict,
+    current_user: models.User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    answer = payload.get("answer", "").upper()
+
+    question = db.query(models.Question).filter(models.Question.id == question_id).first()
+
+    if not question:
+        raise HTTPException(status_code=404, detail="Questão não encontrada")
+
+    is_correct = answer == str(question.resposta_correta).upper()
+
+    existing = (
+        db.query(models.UserInteraction)
+        .filter(
+            models.UserInteraction.user_id == current_user.user_id,
+            models.UserInteraction.question_id == question_id,
+        )
+        .first()
+    )
+
+    if existing:
+        existing.status = "acertou" if is_correct else "errou"
+    else:
+        interaction = models.UserInteraction(
+            user_id=current_user.user_id,
+            question_id=question_id,
+            status="acertou" if is_correct else "errou",
+            tempo_resposta=payload.get("time", 0),
+        )
+        db.add(interaction)
+
+    db.commit()
+
+    return {
+        "correct": is_correct,
+        "your_answer": answer,
+        "correct_answer": question.resposta_correta,
+        "explanation": question.resolucao_base or "Sem explicação disponível",
+    }

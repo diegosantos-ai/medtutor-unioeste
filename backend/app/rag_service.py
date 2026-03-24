@@ -7,7 +7,6 @@ import chromadb
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import Chroma
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
 from app.config import (
@@ -18,6 +17,7 @@ from app.config import (
     CHUNK_OVERLAP,
     BASE_CONHECIMENTO_DIR,
 )
+from app.openrouter_embeddings import OpenRouterEmbeddings
 
 load_dotenv()
 
@@ -33,15 +33,34 @@ class RAGService:
         self._load_vectorstore()
 
     def _init_embeddings(self):
-        api_key = os.environ.get("GEMINI_API_KEY")
-        if not api_key:
-            logger.warning("GEMINI_API_KEY not configured. RAG embeddings disabled.")
-            return
+        # Try OpenRouter first (NVIDIA embeddings)
+        api_key = os.environ.get("OPENROUTER_API_KEY")
+        if api_key:
+            try:
+                self.embeddings = OpenRouterEmbeddings(
+                    model="nvidia/llama-nemotron-embed-vl-1b-v2:free",
+                    api_key=api_key,
+                )
+                logger.info("Using OpenRouter NVIDIA embeddings")
+                return
+            except Exception as e:
+                logger.warning(f"Failed to init OpenRouter embeddings: {e}")
 
-        self.embeddings = GoogleGenerativeAIEmbeddings(
-            model="gemini-embedding-001",
-            google_api_key=api_key,
-        )
+        # Fallback to Gemini if OpenRouter not configured
+        try:
+            from langchain_google_genai import GoogleGenerativeAIEmbeddings
+            gemini_key = os.environ.get("GEMINI_API_KEY")
+            if gemini_key:
+                self.embeddings = GoogleGenerativeAIEmbeddings(
+                    model="gemini-embedding-001",
+                    google_api_key=gemini_key,
+                )
+                logger.info("Using Gemini embeddings as fallback")
+                return
+        except Exception as e:
+            logger.warning(f"Failed to init Gemini embeddings: {e}")
+
+        logger.warning("No embeddings configured. RAG will be disabled.")
 
     def _load_vectorstore(self):
         if self.embeddings is None:
