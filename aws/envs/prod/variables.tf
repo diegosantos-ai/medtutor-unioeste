@@ -67,26 +67,31 @@ variable "repo_ref" {
 variable "domain_name" {
   description = "Dominio publico da demo apontado para o Elastic IP da instancia"
   type        = string
+  default     = "demo.medtutor.local"
 }
 
 variable "letsencrypt_email" {
   description = "Email administrativo utilizado pelo Certbot para emissao do certificado"
   type        = string
+  default     = "admin@medtutor.local"
 }
 
 variable "postgres_password_ssm_parameter" {
   description = "Nome do parametro SSM que contem a senha do PostgreSQL"
   type        = string
+  default     = "/medtutor/prod/postgres_password"
 }
 
 variable "grafana_admin_user_ssm_parameter" {
   description = "Nome do parametro SSM que contem o usuario admin do Grafana"
   type        = string
+  default     = "/medtutor/prod/grafana_admin_user"
 }
 
 variable "grafana_admin_password_ssm_parameter" {
   description = "Nome do parametro SSM que contem a senha admin do Grafana"
   type        = string
+  default     = "/medtutor/prod/grafana_admin_password"
 }
 
 variable "gemini_api_key_ssm_parameter" {
