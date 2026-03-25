@@ -38,7 +38,11 @@ export function clearSession(): void {
   localStorage.removeItem('medtutor_chat_history');
 }
 
-export async function initializeSession(name: string): Promise<{ sessionId: string; token: string }> {
+export async function initializeSession(
+  name: string,
+  days?: number,
+  difficulties?: any[]
+): Promise<{ sessionId: string; token: string }> {
   const sessionId = getOrCreateSessionId();
 
   // Create or login user with session-based email
@@ -68,11 +72,16 @@ export async function initializeSession(name: string): Promise<{ sessionId: stri
   apiClient.setToken(token);
 
   // Save session data
-  setSessionData({
+  const sessionData: any = {
     sessionId,
     name,
     createdAt: new Date().toISOString()
-  });
+  };
+
+  if (days) sessionData.days = days;
+  if (difficulties) sessionData.difficulties = difficulties;
+
+  setSessionData(sessionData);
 
   return { sessionId, token };
 }

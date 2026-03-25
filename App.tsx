@@ -21,7 +21,7 @@ import ProgressPage from './pages/ProgressPage';
 import { logger } from './utils/logger';
 import { GraduationCap, MessageSquare, Archive, LogOut, Activity, Clock, Layers, FileQuestion, BookX, Lightbulb } from 'lucide-react';
 import { apiClient } from './components/api/apiClient';
-import { getOrCreateSessionId, getSessionData, setSessionData, clearSession } from './utils/session';
+import { getOrCreateSessionId, getSessionData, setSessionData, clearSession, initializeSession } from './utils/session';
 
 interface AppState {
   days: number;
@@ -52,40 +52,8 @@ const OnboardingPage: React.FC<{ onComplete: (config: any) => void }> = ({ onCom
     });
 
     try {
-      const email = `${sessionId}@medtutor.com`;
-      const password = sessionId;
-
-      let token: string;
-      try {
-        const loginResponse = await apiClient.post<{ access_token: string }>('/auth/login', {
-          email,
-          password
-        });
-        token = loginResponse.access_token;
-      } catch (loginError: any) {
-        if (loginError.status === 422) {
-          throw loginError;
-        }
-        try {
-          const registerResponse = await apiClient.post<{ access_token: string }>('/auth/register', {
-            email,
-            password,
-            name
-          });
-          token = registerResponse.access_token;
-        } catch (registerError: any) {
-          if (registerError.status === 422) {
-            const errorMsg = registerError.message || 'Erro de validação. Verifique seus dados.';
-            setError(errorMsg);
-            setPlan(null);
-            return;
-          }
-          throw registerError;
-        }
-      }
-
-      apiClient.setToken(token);
-      localStorage.setItem('medtutor_token', token);
+      // Use centralized session initialization
+      await initializeSession(name, daysConfig, diffConfig);
 
       try {
         const res = await apiClient.post('/study-plan', {
@@ -105,7 +73,7 @@ const OnboardingPage: React.FC<{ onComplete: (config: any) => void }> = ({ onCom
           day: i + 1,
           tasks: [
             { id: `${i + 1}-1`, subject: subjects[i % subjects.length], topic: `Estudo dirigido - ${subjects[i % subjects.length]}`, duration: '45 min', objective: `Revisao dos conceitos-chave de ${subjects[i % subjects.length]} para o vestibular`, type: 'teoria', completed: false },
-            { id: `${i + 1}-2`, subject: subjects[(i + 1) % subjects.length], topic: `Exercicios - ${subjects[(i + 1) % subjects.length]}`, duration: '30 min', objective: `Resolver questoes no estilo UNIOESTE de ${subjects[(i + 1) % subjects.length]}`, type: 'quiz', quiz: [{ question: `Questao de revisao de ${subjects[(i + 1) % subjects.length]} - Dia ${i + 1}`, options: ['Alternativa A', 'Alternativa B', 'Alternativa C', 'Alternativa D'], answer: 'Alternativa A' }], completed: false }
+            { id: `${i + 1}-2`, subject: subjects[(i + 1) % subjects.length], topic: `Exercicios - ${subjects[(i + 1) % subjects.length]}`, duration: '30 min', objective: `Resolver questoes no estilo UNIOESTE de ${subjects[(i + 1) % subjects.length]}`, type: 'quiz', quiz: [{ question: `Questao de revisao de ${subjects[(i + i) % subjects.length]} - Dia ${i + 1}`, options: ['Alternativa A', 'Alternativa B', 'Alternativa C', 'Alternativa D'], answer: 'Alternativa A' }], completed: false }
           ],
           summary: `Resumo do dia ${i + 1}: ${subjects[i % subjects.length]} e ${subjects[(i + 1) % subjects.length]}`
         }));
@@ -402,20 +370,8 @@ const App: React.FC = () => {
           setState(prev => ({ ...prev, plan: { loading: true } }));
 
           try {
-      const email = `${sessionId}@medtutor.com`;
-            const password = sessionId;
-
-            let token: string;
-            try {
-              const loginResponse = await apiClient.post<{ access_token: string }>('/auth/login', { email, password });
-              token = loginResponse.access_token;
-            } catch {
-              const registerResponse = await apiClient.post<{ access_token: string }>('/auth/register', { email, password, name });
-              token = registerResponse.access_token;
-            }
-
-            apiClient.setToken(token);
-            localStorage.setItem('medtutor_token', token);
+            // Use centralized session initialization
+            await initializeSession(name, daysConfig, diffConfig);
 
             // Fire and forget / background generation to not block UI
             apiClient.post('/study-plan', {
@@ -431,7 +387,7 @@ const App: React.FC = () => {
               ],
               summary: `Resumo do dia ${i + 1}: ${subjects[i % subjects.length]} e ${subjects[(i + 1) % subjects.length]}`
             }));
-            
+
             setState(prev => ({ ...prev, days: daysConfig, difficulties: diffConfig, studentInfo: { name, profile }, plan: { days: daysConfig, schedule }, matricula: newMatricula }));
           } catch (error) {
             console.error('Erro geral ao logar:', error);

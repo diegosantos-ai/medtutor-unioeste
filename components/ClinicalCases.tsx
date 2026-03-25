@@ -3,14 +3,13 @@ import { GraduationCap, BookOpen, FileText, CheckCircle2, ChevronRight, AlertCir
 import { motion, AnimatePresence } from 'framer-motion';
 import { TourTip } from './TourTip';
 import { useCases } from './hooks/useCases';
-import { MockClinicalCase } from './api/mockData';
 
 interface CasesProps {
   showTour?: boolean;
 }
 
 export const ClinicalCases: React.FC<CasesProps> = ({ showTour = false }) => {
-  const { cases, isLoading, error, refetch } = useCases();
+  const { cases, isLoading, error, refetch, submitAnswer } = useCases();
   const [currentCaseIndex, setCurrentCaseIndex] = useState(0);
   const [currentStep, setCurrentStep] = useState(0);
   const [selectedOption, setSelectedOption] = useState<string | null>(null);
@@ -27,14 +26,21 @@ export const ClinicalCases: React.FC<CasesProps> = ({ showTour = false }) => {
     setSelectedOption(optionKey);
     setShowFeedback(true);
 
-    // Simula resposta da API com dados mockados
-    const isCorrect = optionKey.toUpperCase() === currentEtapa.resposta_correta.toUpperCase();
-    setFeedback({
-      correto: isCorrect,
-      explicacao: isCorrect
-        ? "Parabéns! Resposta correta."
-        : `A resposta correta é ${currentEtapa.resposta_correta}. Continue estudando!`
-    });
+    try {
+      const response = await submitAnswer(currentCase.id, {
+        etapa_id: currentEtapa.id,
+        resposta: optionKey
+      });
+      setFeedback({
+        correto: response.correto,
+        explicacao: response.explicacao
+      });
+    } catch (err) {
+      setFeedback({
+        correto: false,
+        explicacao: "Erro ao validar resposta. Tente novamente."
+      });
+    }
   };
 
   const handleNext = () => {
