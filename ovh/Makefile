@@ -23,19 +23,19 @@ prepare-runtime: ## Prepara diretórios e certificado auto-assinado
 	DOMAIN_NAME="$(DOMAIN_NAME)" ./scripts/prod/init_self_signed_cert.sh
 
 build: ## Contrói as imagens Docker
-	docker compose --env-file .runtime/prod/app.env -f docker-compose.prod.yml build
+	docker compose --env-file .runtime/prod/app.env -f ../docker-compose.prod.yml build
 
 up: ## Sobe todos os containers
-	docker compose --env-file .runtime/prod/app.env -f docker-compose.prod.yml up -d
+	docker compose --env-file .runtime/prod/app.env -f ../docker-compose.prod.yml up -d
 
 down: ## Para todos os containers
-	docker compose --env-file .runtime/prod/app.env -f docker-compose.prod.yml down
+	docker compose --env-file .runtime/prod/app.env -f ../docker-compose.prod.yml down
 
 logs: ## Mostra logs de todos os serviços
-	docker compose --env-file .runtime/prod/app.env -f docker-compose.prod.yml logs -f
+	docker compose --env-file .runtime/prod/app.env -f ../docker-compose.prod.yml logs -f
 
 ps: ## Mostra status dos containers
-	docker compose --env-file .runtime/prod/app.env -f docker-compose.prod.yml ps
+	docker compose --env-file .runtime/prod/app.env -f ../docker-compose.prod.yml ps
 
 ssl: ## Emite certificado Let's Encrypt
 	DOMAIN_NAME="$(DOMAIN_NAME)" \
