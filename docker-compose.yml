@@ -151,6 +151,9 @@ services:
 networks:
   medtutor-net:
     driver: bridge
+  dev-workspace-net:
+    external: true
+    name: dev-workspace-net
 
 volumes:
   postgres_data:
