@@ -70,7 +70,7 @@ services:
       - medtutor-net
 
   chromadb:
-    image: chromadb/chroma:0.5.5
+    image: chromadb/chroma:1.5.5
     container_name: medtutor-chromadb
     restart: unless-stopped
     environment:
@@ -151,6 +151,9 @@ services:
 networks:
   medtutor-net:
     driver: bridge
+  dev-workspace-net:
+    external: true
+    name: dev-workspace-net
 
 volumes:
   postgres_data:

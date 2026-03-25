@@ -70,7 +70,12 @@ observability: ## Mostra o stack de observabilidade em execucao
 
 test: ## Executa baterias de testes (Python via Docker e NPM local)
 	@echo "$(CYAN)Executando testes da aplicação...$(RESET)"
-	docker compose exec medtutor-api python -m unittest discover -v || echo "Sem falhas py"
+	@docker compose config -q
+	@if ! docker compose ps --status running backend | tail -n +2 | grep -q .; then \
+		echo "Backend nao esta em execucao. Rode 'make up' antes de 'make test'."; \
+		exit 1; \
+	fi
+	docker compose exec backend python test_rag.py
 	npm test --if-present
 
 run-dev: up ## Levanta a infraestrutura de background e serve o vite em watch mode
